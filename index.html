@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bengkel Gearbox · CVT & Auto Transmission Specialists — See Inside Your Gearbox in 3D</title>
+<meta name="description" content="Malaysia's first gearbox workshop where you explore your CVT in interactive 3D. Diagnostics-first CVT repair, rebuilds & fluid service — with a real warranty. Book on WhatsApp." />
+<meta name="theme-color" content="#05070a" />
+
+<!-- ============================================================
+     EDIT THESE BEFORE GOING LIVE  (placeholders, marked clearly)
+     • WhatsApp number  → search:  60123456789
+     • Phone number     → search:  +60 12-345 6789
+     • Address / hours  → search:  data-edit
+     ============================================================ -->
+
+<meta property="og:title" content="Bengkel Gearbox — Explore Your CVT in 3D" />
+<meta property="og:description" content="The first workshop where you can see and drive your gearbox in 3D before we touch a bolt." />
+<meta property="og:type" content="website" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cyan:#39c2d7; --green:#3ddc97; --amber:#f3b04a; --red:#ef6b6b;
+  --ink:#05070a; --ink2:#0a0e13; --ink3:#0e141c;
+  --line:rgba(57,194,215,.22); --line-soft:rgba(57,194,215,.10);
+  --text:#dbeaf1; --dim:#8aa3b1; --white:#f4fbff;
+  --wa:#25d366;
+  --maxw:1180px;
+  --sans:'Inter',system-ui,sans-serif; --head:'Space Grotesk','Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--sans);color:var(--text);background:var(--ink);line-height:1.6;
+  overflow-x:hidden;-webkit-font-smoothing:antialiased;
+}
+a{color:inherit;text-decoration:none}
+img{max-width:100%}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
+h1,h2,h3{font-family:var(--head);font-weight:700;line-height:1.08;letter-spacing:-.02em;color:var(--white)}
+.mono{font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;font-size:11px}
+.accent{color:var(--cyan)}
+.green{color:var(--green)}
+
+/* ambient holographic background */
+body::before{
+  content:"";position:fixed;inset:0;z-index:-2;
+  background:
+    radial-gradient(900px 600px at 80% -8%, rgba(57,194,215,.13), transparent 60%),
+    radial-gradient(800px 600px at 0% 100%, rgba(61,220,151,.08), transparent 55%),
+    var(--ink);
+}
+body::after{
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(rgba(120,180,255,.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(120,180,255,.04) 1px,transparent 1px);
+  background-size:48px 48px;
+  mask-image:radial-gradient(circle at 50% 30%,#000,transparent 80%);
+}
+
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;gap:9px;font-family:var(--head);font-weight:600;
+  font-size:15px;padding:13px 22px;border-radius:11px;cursor:pointer;border:1px solid transparent;
+  transition:.2s;white-space:nowrap}
+.btn-wa{background:var(--wa);color:#04140a;box-shadow:0 8px 30px rgba(37,211,102,.32)}
+.btn-wa:hover{transform:translateY(-2px);box-shadow:0 12px 38px rgba(37,211,102,.45)}
+.btn-ghost{border-color:var(--line);color:var(--text);background:rgba(57,194,215,.05)}
+.btn-ghost:hover{border-color:var(--cyan);color:var(--white);box-shadow:0 0 24px rgba(57,194,215,.25)}
+.btn-cyan{background:linear-gradient(135deg,var(--cyan),#1f8fb0);color:#04141a;box-shadow:0 8px 30px rgba(57,194,215,.3)}
+.btn-cyan:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(57,194,215,.45)}
+.btn svg{width:18px;height:18px;fill:currentColor}
+
+/* ---------- nav ---------- */
+header{position:fixed;top:0;left:0;right:0;z-index:50;transition:.3s}
+header.scrolled{background:rgba(5,8,12,.82);backdrop-filter:blur(12px);border-bottom:1px solid var(--line-soft)}
+nav{display:flex;align-items:center;justify-content:space-between;height:68px}
+.brand{display:flex;align-items:center;gap:11px;font-family:var(--head);font-weight:700;font-size:18px;color:var(--white);letter-spacing:-.01em}
+.brand .gear{width:30px;height:30px;animation:spin 14s linear infinite}
+.brand .gear circle,.brand .gear path{stroke:var(--cyan)}
+.brand small{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.22em;color:var(--cyan);font-weight:500}
+.nav-links{display:flex;align-items:center;gap:28px}
+.nav-links a{font-size:14.5px;color:var(--dim);font-weight:500;transition:.18s}
+.nav-links a:hover{color:var(--white)}
+.nav-cta{display:flex;align-items:center;gap:12px}
+.burger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:8px}
+.burger span{width:24px;height:2px;background:var(--text);transition:.25s;border-radius:2px}
+
+/* ---------- hero ---------- */
+.hero{position:relative;padding:140px 0 70px;text-align:center}
+.eyebrow{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:11px;letter-spacing:.18em;
+  color:var(--cyan);border:1px solid var(--line);background:rgba(57,194,215,.06);padding:7px 15px;border-radius:999px;margin-bottom:26px}
+.eyebrow .pulse{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:beat 1.6s infinite}
+.hero h1{font-size:clamp(34px,6vw,68px);margin-bottom:20px}
+.hero h1 .grad{background:linear-gradient(120deg,var(--cyan),var(--green));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p.lead{font-size:clamp(16px,2.2vw,20px);color:var(--dim);max-width:640px;margin:0 auto 32px}
+.hero-cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:18px}
+.hero-note{font-family:var(--mono);font-size:10.5px;color:var(--dim);letter-spacing:.1em}
+
+/* ---------- the simulator console ---------- */
+.experience{padding:30px 0 80px}
+.console{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--line);
+  background:#03060a;box-shadow:0 30px 90px rgba(0,0,0,.6),0 0 60px rgba(57,194,215,.12);
+  aspect-ratio:16/9;min-height:420px}
+.console .corner{position:absolute;width:30px;height:30px;border:2px solid var(--cyan);z-index:6;opacity:.6;pointer-events:none}
+.console .corner.tl{top:12px;left:12px;border-right:0;border-bottom:0}
+.console .corner.tr{top:12px;right:12px;border-left:0;border-bottom:0}
+.console .corner.bl{bottom:12px;left:12px;border-right:0;border-top:0}
+.console .corner.br{bottom:12px;right:12px;border-left:0;border-top:0}
+.console iframe{width:100%;height:100%;border:0;display:block}
+/* poster (lazy-load gate for perf + intent) */
+.poster{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:22px;text-align:center;cursor:pointer;background:
+    radial-gradient(700px 380px at 50% 38%,rgba(57,194,215,.16),transparent 60%),#03060a;z-index:5}
+.poster .ring{width:104px;height:104px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;
+  position:relative;animation:floaty 4s ease-in-out infinite}
+.poster .ring::before{content:"";position:absolute;inset:-10px;border-radius:50%;border:1px solid rgba(57,194,215,.25);
+  border-top-color:var(--cyan);animation:spin 6s linear infinite}
+.poster .ring svg{width:46px;height:46px;fill:none;stroke:var(--cyan);stroke-width:1.4}
+.poster h3{font-size:clamp(20px,3vw,30px)}
+.poster p{color:var(--dim);font-size:14px;max-width:430px}
+.poster .play{display:inline-flex;align-items:center;gap:10px}
+.console-bar{display:flex;flex-wrap:wrap;gap:10px 22px;justify-content:center;align-items:center;margin-top:18px;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;color:var(--dim)}
+.console-bar b{color:var(--cyan);font-weight:600}
+.fs-btn{margin-left:auto}
+
+/* ---------- section primitives ---------- */
+section{position:relative}
+.sec{padding:84px 0}
+.sec-head{text-align:center;max-width:660px;margin:0 auto 50px}
+.sec-head .mono{color:var(--cyan);display:block;margin-bottom:14px}
+.sec-head h2{font-size:clamp(28px,4.4vw,44px);margin-bottom:14px}
+.sec-head p{color:var(--dim);font-size:16px}
+
+/* trust strip */
+.trust{border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft);background:rgba(10,16,22,.5)}
+.trust .wrap{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;padding:34px 22px}
+.stat{text-align:center}
+.stat .n{font-family:var(--head);font-weight:700;font-size:clamp(26px,3.6vw,40px);
+  background:linear-gradient(120deg,var(--cyan),var(--green));-webkit-background-clip:text;background-clip:text;color:transparent}
+.stat .l{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--dim);margin-top:6px;text-transform:uppercase}
+
+/* cards grid */
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.card{background:linear-gradient(180deg,rgba(14,20,28,.7),rgba(8,12,17,.7));border:1px solid var(--line-soft);
+  border-radius:15px;padding:26px;transition:.22s;position:relative;overflow:hidden}
+.card:hover{transform:translateY(-5px);border-color:var(--line);box-shadow:0 18px 50px rgba(0,0,0,.45)}
+.card .ic{width:46px;height:46px;border-radius:11px;display:grid;place-items:center;margin-bottom:16px;
+  background:rgba(57,194,215,.1);border:1px solid var(--line)}
+.card .ic svg{width:24px;height:24px;fill:none;stroke:var(--cyan);stroke-width:1.6}
+.card h3{font-size:18px;margin-bottom:8px}
+.card p{color:var(--dim);font-size:14.5px}
+
+/* why / split */
+.split{display:grid;grid-template-columns:1.05fr .95fr;gap:50px;align-items:center}
+.feat{display:flex;gap:15px;margin-bottom:22px}
+.feat .fic{flex:none;width:42px;height:42px;border-radius:10px;display:grid;place-items:center;
+  background:rgba(61,220,151,.1);border:1px solid rgba(61,220,151,.25)}
+.feat .fic svg{width:22px;height:22px;fill:none;stroke:var(--green);stroke-width:1.7}
+.feat h3{font-size:17px;margin-bottom:4px}
+.feat p{color:var(--dim);font-size:14.5px}
+.panel{border:1px solid var(--line);border-radius:16px;background:rgba(10,16,22,.55);padding:30px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.02)}
+.panel .badge{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--green);
+  border:1px solid rgba(61,220,151,.3);border-radius:999px;padding:5px 12px;display:inline-block;margin-bottom:16px}
+.panel h3{font-size:24px;margin-bottom:10px}
+.panel ul{list-style:none;margin-top:16px}
+.panel li{display:flex;gap:11px;padding:9px 0;border-bottom:1px solid var(--line-soft);font-size:14.5px;color:var(--text)}
+.panel li:last-child{border:0}
+.panel li svg{flex:none;width:18px;height:18px;fill:none;stroke:var(--green);stroke-width:2;margin-top:2px}
+
+/* process */
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;counter-reset:s}
+.step{position:relative;padding:26px 22px;border:1px solid var(--line-soft);border-radius:14px;background:rgba(10,16,22,.4)}
+.step::before{counter-increment:s;content:"0" counter(s);font-family:var(--mono);font-size:30px;font-weight:600;
+  color:transparent;-webkit-text-stroke:1px var(--cyan);display:block;margin-bottom:12px;opacity:.8}
+.step h3{font-size:17px;margin-bottom:7px}
+.step p{color:var(--dim);font-size:14px}
+
+/* testimonials */
+.quotes{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.quote{border:1px solid var(--line-soft);border-radius:14px;padding:24px;background:rgba(10,16,22,.45)}
+.quote .stars{color:var(--amber);letter-spacing:2px;margin-bottom:12px;font-size:14px}
+.quote p{font-size:14.5px;margin-bottom:16px}
+.quote .who{display:flex;align-items:center;gap:11px}
+.quote .av{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--green));
+  display:grid;place-items:center;font-family:var(--head);font-weight:700;color:#04141a;font-size:15px}
+.quote .who b{display:block;font-size:14px;color:var(--white)}
+.quote .who span{font-size:12px;color:var(--dim)}
+
+/* faq */
+.faq{max-width:780px;margin:0 auto}
+.qa{border:1px solid var(--line-soft);border-radius:12px;margin-bottom:12px;overflow:hidden;background:rgba(10,16,22,.4)}
+.qa summary{list-style:none;cursor:pointer;padding:18px 20px;font-family:var(--head);font-weight:600;font-size:16px;
+  color:var(--white);display:flex;justify-content:space-between;align-items:center;gap:14px}
+.qa summary::-webkit-details-marker{display:none}
+.qa summary::after{content:"+";color:var(--cyan);font-size:22px;transition:.2s}
+.qa[open] summary::after{transform:rotate(45deg)}
+.qa .a{padding:0 20px 18px;color:var(--dim);font-size:14.5px}
+
+/* CTA band */
+.cta-band{position:relative;border-radius:20px;overflow:hidden;border:1px solid var(--line);
+  background:radial-gradient(700px 320px at 50% 0%,rgba(57,194,215,.16),transparent 60%),rgba(10,16,22,.7);
+  padding:56px 30px;text-align:center}
+.cta-band h2{font-size:clamp(26px,4vw,40px);margin-bottom:14px}
+.cta-band p{color:var(--dim);max-width:540px;margin:0 auto 28px}
+.cta-band .hero-cta{margin-bottom:0}
+
+/* footer */
+footer{border-top:1px solid var(--line-soft);margin-top:80px;padding:54px 0 30px;background:rgba(6,10,14,.6)}
+.foot-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:36px;margin-bottom:36px}
+.foot-grid p{color:var(--dim);font-size:14px;margin-top:14px;max-width:320px}
+.foot-col h4{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--cyan);margin-bottom:16px;text-transform:uppercase}
+.foot-col a,.foot-col div{display:block;color:var(--dim);font-size:14px;padding:5px 0;transition:.15s}
+.foot-col a:hover{color:var(--white)}
+.foot-bottom{border-top:1px solid var(--line-soft);padding-top:22px;display:flex;justify-content:space-between;
+  flex-wrap:wrap;gap:12px;color:var(--dim);font-size:12.5px}
+
+/* floating WhatsApp */
+.fab{position:fixed;right:20px;bottom:20px;z-index:60;width:60px;height:60px;border-radius:50%;background:var(--wa);
+  display:grid;place-items:center;box-shadow:0 10px 30px rgba(37,211,102,.5);animation:floaty 3.5s ease-in-out infinite}
+.fab svg{width:32px;height:32px;fill:#fff}
+.fab::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid var(--wa);animation:ring 2.4s infinite}
+
+/* reveal */
+.reveal{opacity:0;transform:translateY(24px);transition:.7s cubic-bezier(.2,.7,.2,1)}
+.reveal.in{opacity:1;transform:none}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes beat{0%,100%{opacity:.5;transform:scale(.85)}50%{opacity:1;transform:scale(1.15)}}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes ring{0%{transform:scale(1);opacity:.7}100%{transform:scale(1.6);opacity:0}}
+
+@media(max-width:920px){
+  .nav-links{display:none}
+  .nav-links.open{display:flex;position:absolute;top:68px;left:0;right:0;flex-direction:column;gap:0;
+    background:rgba(5,8,12,.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:10px 0}
+  .nav-links.open a{padding:14px 22px;border-bottom:1px solid var(--line-soft)}
+  .burger{display:flex}
+  .split{grid-template-columns:1fr;gap:34px}
+  .cards,.quotes{grid-template-columns:1fr}
+  .steps{grid-template-columns:repeat(2,1fr)}
+  .trust .wrap{grid-template-columns:repeat(2,1fr);gap:26px}
+  .foot-grid{grid-template-columns:1fr;gap:26px}
+}
+@media(max-width:560px){
+  .nav-cta .btn-ghost{display:none}
+  .console{aspect-ratio:auto;height:74vh;min-height:380px}
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== NAV ===================== -->
+<header id="hdr">
+  <div class="wrap">
+    <nav>
+      <a class="brand" href="#top">
+        <svg class="gear" viewBox="0 0 40 40" fill="none">
+          <circle cx="20" cy="20" r="6" stroke-width="2"/>
+          <path d="M20 3v6M20 31v6M3 20h6M31 20h6M8 8l4 4M28 28l4 4M32 8l-4 4M12 28l-4 4" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span>BENGKEL GEARBOX<small>CVT · AUTO TRANSMISSION SPECIALISTS</small></span>
+      </a>
+      <div class="nav-links" id="navlinks">
+        <a href="#experience">3D Experience</a>
+        <a href="#services">Services</a>
+        <a href="#why">Why Us</a>
+        <a href="#process">How It Works</a>
+        <a href="#contact">Contact</a>
+      </div>
+      <div class="nav-cta">
+        <a class="btn btn-ghost" href="tel:+60123456789">Call</a>
+        <a class="btn btn-wa" href="https://wa.me/60123456789" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163a11.867 11.867 0 01-1.587-5.945C.16 5.335 5.495 0 12.05 0a11.82 11.82 0 018.413 3.488 11.82 11.82 0 013.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 01-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 001.519 5.262l-.999 3.648 3.969-1.04z"/></svg>
+          WhatsApp
+        </a>
+      </div>
+      <div class="burger" id="burger"><span></span><span></span><span></span></div>
+    </nav>
+  </div>
+</header>
+
+<a id="top"></a>
+
+<!-- ===================== HERO ===================== -->
+<section class="hero">
+  <div class="wrap">
+    <span class="eyebrow"><span class="pulse"></span> WORLD-FIRST · INTERACTIVE 3D GEARBOX</span>
+    <h1>See <span class="grad">inside your gearbox</span><br>before we touch a single bolt.</h1>
+    <p class="lead">We're the first workshop where you can <b>drive, explode and inspect a real CVT in 3D</b> — right here in your browser. Then we diagnose yours with the same precision, and fix it with a warranty.</p>
+    <div class="hero-cta">
+      <a class="btn btn-wa" href="https://wa.me/60123456789?text=Hi%20Bengkel%20Gearbox%2C%20I%27d%20like%20to%20book%20a%20CVT%20diagnostic." target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163a11.867 11.867 0 01-1.587-5.945C.16 5.335 5.495 0 12.05 0a11.82 11.82 0 018.413 3.488 11.82 11.82 0 013.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 01-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 001.519 5.262l-.999 3.648 3.969-1.04z"/></svg>
+        Book a Diagnostic
+      </a>
+      <a class="btn btn-ghost" href="#experience">▶ Try the 3D Simulator</a>
+    </div>
+    <div class="hero-note">NO APP · NO LOGIN · WORKS ON YOUR PHONE</div>
+  </div>
+</section>
+
+<!-- ===================== THE 3D EXPERIENCE ===================== -->
+<section class="experience" id="experience">
+  <div class="wrap reveal">
+    <div class="console" id="console">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <div class="poster" id="poster">
+        <div class="ring">
+          <svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="9"/><circle cx="24" cy="24" r="20" stroke-dasharray="4 6"/></svg>
+        </div>
+        <div>
+          <h3>The Live CVT Simulator</h3>
+          <p>A full physics model of a Punch VT2/VT3 continuously-variable transmission. Drive it, slice it open, explode the compartments — even steer it with your hand.</p>
+        </div>
+        <span class="btn btn-cyan play">▶ Launch Simulator</span>
+      </div>
+    </div>
+    <div class="console-bar">
+      <span><b>DRAG</b> rotate</span><span><b>SCROLL</b> zoom</span><span><b>P/R/N/D/S</b> drive</span>
+      <span><b>EXPLODE</b> teardown</span><span><b>✋ HAND</b> control</span>
+      <a class="btn btn-ghost fs-btn" id="fsBtn" href="sim.html" target="_blank" rel="noopener" style="padding:8px 14px;font-size:13px">Open fullscreen ↗</a>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== TRUST ===================== -->
+<div class="trust">
+  <div class="wrap">
+    <div class="stat"><div class="n">12+</div><div class="l">Years on CVTs</div></div>
+    <div class="stat"><div class="n">8,000+</div><div class="l">Gearboxes Serviced</div></div>
+    <div class="stat"><div class="n">12-mo</div><div class="l">Workmanship Warranty</div></div>
+    <div class="stat"><div class="n">4.9★</div><div class="l">Customer Rating</div></div>
+  </div>
+</div>
+
+<!-- ===================== SERVICES ===================== -->
+<section class="sec" id="services">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="mono">What we do</span>
+      <h2>CVT & automatic gearbox, done right</h2>
+      <p>We specialise in continuously-variable and automatic transmissions — Proton, Perodua, Honda, Nissan, Toyota and more. Not a general mechanic guessing; a transmission specialist diagnosing.</p>
+    </div>
+    <div class="cards">
+      <div class="card reveal"><div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/><circle cx="12" cy="12" r="3.5"/></svg></div>
+        <h3>3D Diagnostic Health Check</h3><p>We read the live data, map it onto the 3D unit, and show you exactly what's happening inside — pressures, ratio, belt slip, solenoid currents.</p></div>
+      <div class="card reveal"><div class="ic"><svg viewBox="0 0 24 24"><path d="M14 4l6 6-9 9H5v-6z"/><path d="M11 7l6 6"/></svg></div>
+        <h3>CVT Repair & Rebuild</h3><p>Belt/chain, pulleys, valve body, solenoids, bearings — repaired or fully rebuilt to spec with genuine and OEM-grade parts.</p></div>
+      <div class="card reveal"><div class="ic"><svg viewBox="0 0 24 24"><path d="M7 7h10l-1 13H8z"/><path d="M9 7V4h6v3"/></svg></div>
+        <h3>CVT Fluid Service</h3><p>The right fluid, the right interval, done properly with a full flush — the single biggest thing that keeps a CVT alive.</p></div>
+      <div class="card reveal"><div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></div>
+        <h3>Judder & Slip Fixes</h3><p>Shudder on take-off, RPM flare, hesitation, jerking — we trace the root cause instead of throwing parts at it.</p></div>
+      <div class="card reveal"><div class="ic"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg></div>
+        <h3>DTC & Limp-Mode Scan</h3><p>Stuck in limp mode or a warning light on? Full fault-code read with a plain-language explanation of what each one means.</p></div>
+      <div class="card reveal"><div class="ic"><svg viewBox="0 0 24 24"><path d="M9 11l3 3 7-7"/><path d="M21 12a9 9 0 11-6.2-8.5"/></svg></div>
+        <h3>Pre-Purchase Inspection</h3><p>Buying a used CVT car? We inspect the transmission first so you don't inherit a RM8,000 surprise.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== WHY US ===================== -->
+<section class="sec" id="why">
+  <div class="wrap split">
+    <div class="reveal">
+      <span class="mono accent">Why Bengkel Gearbox</span>
+      <h2 style="font-size:clamp(26px,4vw,40px);margin:14px 0 28px">Specialists, not guesswork.</h2>
+      <div class="feat"><div class="fic"><svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/><path d="M9 12l2 2 4-4"/></svg></div>
+        <div><h3>Diagnostics-first</h3><p>We prove the fault before we quote. You see the data and the 3D — no blind part-swapping.</p></div></div>
+      <div class="feat"><div class="fic"><svg viewBox="0 0 24 24"><path d="M4 7h16v10H4z"/><path d="M8 7V5h8v2"/></svg></div>
+        <div><h3>Genuine & OEM-grade parts</h3><p>Real parts with real life in them — backed by a written 12-month workmanship warranty.</p></div></div>
+      <div class="feat"><div class="fic"><svg viewBox="0 0 24 24"><path d="M3 12h4l2-7 4 14 2-7h4"/></svg></div>
+        <div><h3>Transparent pricing</h3><p>A clear quote before any work starts. No surprises when you collect the car.</p></div></div>
+      <div class="feat"><div class="fic"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div>
+        <div><h3>We only do transmissions</h3><p>Day in, day out. That focus is why our rebuilds last — and why other workshops send us their hard cases.</p></div></div>
+    </div>
+    <div class="panel reveal">
+      <span class="badge">● THE BENGKEL PROMISE</span>
+      <h3>Your gearbox, fixed once.</h3>
+      <p style="color:var(--dim);font-size:14.5px">Every job includes the things that should be standard everywhere:</p>
+      <ul>
+        <li><svg viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg> Free 3D diagnostic summary you can keep</li>
+        <li><svg viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg> Written quote before any work begins</li>
+        <li><svg viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg> 12-month workmanship warranty</li>
+        <li><svg viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg> Genuine / OEM-grade parts only</li>
+        <li><svg viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg> Old parts returned to you on request</li>
+      </ul>
+      <a class="btn btn-cyan" style="margin-top:22px;width:100%;justify-content:center" href="https://wa.me/60123456789?text=Hi%2C%20I%27d%20like%20a%20CVT%20quote." target="_blank" rel="noopener">Get my quote on WhatsApp</a>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== PROCESS ===================== -->
+<section class="sec" id="process">
+  <div class="wrap">
+    <div class="sec-head reveal"><span class="mono">How it works</span><h2>From symptom to solved — in four steps</h2></div>
+    <div class="steps">
+      <div class="step reveal"><h3>Message us</h3><p>Tell us the car and the symptom on WhatsApp. We'll advise if it's worth a check.</p></div>
+      <div class="step reveal"><h3>3D Diagnostic</h3><p>We scan it, map the live data to the 3D unit, and pinpoint the real fault.</p></div>
+      <div class="step reveal"><h3>Clear quote</h3><p>You get a transparent, itemised quote — and we explain it in plain language.</p></div>
+      <div class="step reveal"><h3>Repaired + warranty</h3><p>We fix it properly, test-drive it, and hand it back with a 12-month warranty.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== TESTIMONIALS ===================== -->
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head reveal"><span class="mono">Trusted by drivers</span><h2>People bring us their hardest cases</h2></div>
+    <div class="quotes">
+      <div class="quote reveal"><div class="stars">★★★★★</div><p>"Three other shops just said 'service the fluid'. Bengkel Gearbox showed me on the 3D exactly which solenoid was sticking. Fixed first time."</p><div class="who"><div class="av">AF</div><div><b>Aiman F.</b><span>Proton X50 · CVT judder</span></div></div></div>
+      <div class="quote reveal"><div class="stars">★★★★★</div><p>"The diagnostic experience is on another level — I actually understood what was wrong with my car for the first time. Honest pricing too."</p><div class="who"><div class="av">SL</div><div><b>Sarah L.</b><span>Honda City · RPM flare</span></div></div></div>
+      <div class="quote reveal"><div class="stars">★★★★★</div><p>"Rebuilt my Nissan CVT a year ago, still smooth. They returned my old parts and explained everything. Real specialists."</p><div class="who"><div class="av">RK</div><div><b>Ravi K.</b><span>Nissan Serena · rebuild</span></div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FAQ ===================== -->
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head reveal"><span class="mono">Good to know</span><h2>Common questions</h2></div>
+    <div class="faq">
+      <details class="qa reveal"><summary>Is the 3D simulator my actual gearbox?</summary><div class="a">It's an accurate, physics-based model of a Punch VT2/VT3 CVT — the type used in many Proton and Perodua cars. It's there so you can understand how a CVT works and what we inspect. Your real diagnosis happens in the workshop on your car.</div></details>
+      <details class="qa reveal"><summary>How much does a CVT diagnostic cost?</summary><div class="a">Message us on WhatsApp with your car model and symptoms for current pricing. The diagnostic fee is typically credited toward the repair if you go ahead.</div></details>
+      <details class="qa reveal"><summary>Do you handle my car brand?</summary><div class="a">We service most CVT and automatic transmissions — Proton, Perodua, Honda, Nissan, Toyota, Mitsubishi and more. Send us your model and we'll confirm.</div></details>
+      <details class="qa reveal"><summary>My car is in limp mode — can you help?</summary><div class="a">Yes. Limp mode usually means a stored fault has put the transmission into a safe state. We'll read the codes, explain them, and tell you what it'll take to clear it properly.</div></details>
+      <details class="qa reveal"><summary>Is there a warranty?</summary><div class="a">Every repair and rebuild comes with a 12-month workmanship warranty. Parts carry their own manufacturer warranty on top.</div></details>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CTA + CONTACT ===================== -->
+<section class="sec" id="contact">
+  <div class="wrap">
+    <div class="cta-band reveal">
+      <h2>Your gearbox is talking. Let's listen properly.</h2>
+      <p>Book a 3D diagnostic today — message us on WhatsApp and we'll get you sorted, fast.</p>
+      <div class="hero-cta">
+        <a class="btn btn-wa" href="https://wa.me/60123456789?text=Hi%20Bengkel%20Gearbox%2C%20I%27d%20like%20to%20book%20a%20diagnostic." target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163a11.867 11.867 0 01-1.587-5.945C.16 5.335 5.495 0 12.05 0a11.82 11.82 0 018.413 3.488 11.82 11.82 0 013.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 01-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 001.519 5.262l-.999 3.648 3.969-1.04z"/></svg>
+          Chat on WhatsApp
+        </a>
+        <a class="btn btn-ghost" href="tel:+60123456789">Call +60 12-345 6789</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FOOTER ===================== -->
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a class="brand" href="#top"><svg class="gear" viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="6" stroke-width="2"/><path d="M20 3v6M20 31v6M3 20h6M31 20h6M8 8l4 4M28 28l4 4M32 8l-4 4M12 28l-4 4" stroke-width="2" stroke-linecap="round"/></svg><span>BENGKEL GEARBOX<small>CVT · AUTO TRANSMISSION SPECIALISTS</small></span></a>
+        <p>Malaysia's first 3D-diagnostic gearbox workshop. We diagnose with data, fix with genuine parts, and back it with a real warranty.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Explore</h4>
+        <a href="#experience">3D Simulator</a><a href="#services">Services</a><a href="#why">Why Us</a><a href="#process">How It Works</a>
+      </div>
+      <div class="foot-col">
+        <h4>Visit / Contact</h4>
+        <div data-edit>📍 Your workshop address here</div>
+        <div data-edit>🕒 Mon–Sat 9:00–18:00</div>
+        <a href="https://wa.me/60123456789" target="_blank" rel="noopener">💬 WhatsApp +60 12-345 6789</a>
+        <a href="tel:+60123456789">📞 +60 12-345 6789</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© <span id="yr"></span> Bengkel Gearbox. All rights reserved.</span>
+      <span class="mono">CVT · DSG · AT · REBUILD · MALAYSIA</span>
+    </div>
+  </div>
+</footer>
+
+<!-- floating WhatsApp -->
+<a class="fab" href="https://wa.me/60123456789?text=Hi%20Bengkel%20Gearbox!" target="_blank" rel="noopener" aria-label="WhatsApp us">
+  <svg viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163a11.867 11.867 0 01-1.587-5.945C.16 5.335 5.495 0 12.05 0a11.82 11.82 0 018.413 3.488 11.82 11.82 0 013.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 01-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 001.519 5.262l-.999 3.648 3.969-1.04z"/></svg>
+</a>
+
+<script>
+  // year
+  document.getElementById('yr').textContent = new Date().getFullYear();
+  // sticky nav
+  const hdr = document.getElementById('hdr');
+  const onScroll = () => hdr.classList.toggle('scrolled', window.scrollY > 24);
+  onScroll(); addEventListener('scroll', onScroll, {passive:true});
+  // mobile menu
+  const burger = document.getElementById('burger'), nav = document.getElementById('navlinks');
+  burger.addEventListener('click', () => nav.classList.toggle('open'));
+  nav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => nav.classList.remove('open')));
+  // lazy-load the simulator iframe on intent (perf + engagement)
+  const poster = document.getElementById('poster'), consoleEl = document.getElementById('console');
+  let simLoaded = false;
+  function launchSim(){
+    if (simLoaded) return; simLoaded = true;
+    const f = document.createElement('iframe');
+    f.src = 'sim.html'; f.title = 'Interactive CVT Simulator';
+    f.allow = 'camera; fullscreen';  // camera → hand control
+    consoleEl.insertBefore(f, poster);
+    poster.style.transition = 'opacity .4s'; poster.style.opacity = '0';
+    setTimeout(() => poster.remove(), 420);
+  }
+  poster.addEventListener('click', launchSim);
+  // reveal on scroll
+  const io = new IntersectionObserver((es) => es.forEach(e => { if (e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} }), {threshold:.12});
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+</body>
+</html>
