@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cart & Checkout · MNA Dynamic Torque</title>
+<meta name="description" content="Review your transmission spare parts order and check out via WhatsApp — MNA Dynamic Torque." />
+<meta name="theme-color" content="#050b1c" />
+<meta name="robots" content="noindex" />
+<link rel="icon" type="image/png" href="assets/mna-logo.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira:ital,wght@0,600;0,700;0,800;1,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/shop.css" />
+</head>
+<body>
+
+<div data-mount="header"></div>
+
+<section class="page-head"><div class="wrap">
+  <div class="breadcrumb"><a href="index.html">Home</a><span>/</span><a href="shop.html">Spare Parts</a><span>/</span><span>Cart</span></div>
+  <h1>Your <span class="chrome">Cart</span></h1>
+  <p>Review your parts, confirm quantities, then place your order — it goes straight to our team on WhatsApp for stock and delivery confirmation.</p>
+</div></section>
+
+<div class="wrap">
+  <div id="cartRoot"></div>
+</div>
+
+<div data-mount="footer"></div>
+
+<script src="assets/catalog.js"></script>
+<script src="assets/shop.js"></script>
+<script>
+(function(){
+  var C = window.MNACatalog, S = window.MNAShop;
+  S.mountChrome('shop');
+  var root = document.getElementById('cartRoot');
+
+  function emptyState(){
+    return '<div class="empty">'+
+      '<svg viewBox="0 0 24 24" stroke-width="1.5"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>'+
+      '<path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>'+
+      '<h3>Your cart is empty</h3><p>Browse our CVT & automatic transmission spare parts to get started.</p>'+
+      '<a class="btn btn-cyan" href="shop.html" style="margin-top:18px">Browse Spare Parts</a></div>';
+  }
+
+  function rowFor(line){
+    var p = line.product;
+    return '<div class="cart-row" data-id="'+p.id+'">'+
+      '<a class="ci-thumb" href="product.html?slug='+p.slug+'"><img src="'+C.thumbFor(p)+'" alt="'+p.name+'"/></a>'+
+      '<div class="ci-mid">'+
+        '<div><h3><a href="product.html?slug='+p.slug+'">'+p.name+'</a></h3>'+
+        '<div class="meta">'+p.sku+' · '+(C.categoryInfo(p.category)||{}).name+'</div></div>'+
+        '<div class="ci-controls">'+
+          '<div class="qty">'+
+            '<button type="button" data-act="dec" aria-label="Decrease">–</button>'+
+            '<input type="number" min="1" value="'+line.qty+'" data-act="qty" inputmode="numeric"/>'+
+            '<button type="button" data-act="inc" aria-label="Increase">+</button>'+
+          '</div>'+
+          '<button class="remove" data-act="remove"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>Remove</button>'+
+        '</div>'+
+      '</div>'+
+      '<div class="ci-price"><div class="line">'+C.formatPrice(line.subtotal)+'</div>'+
+        '<div class="each'+(line.isWholesale?' ws':'')+'">'+C.formatPrice(line.unit)+' ea'+(line.isWholesale?' · wholesale':'')+'</div></div>'+
+    '</div>';
+  }
+
+  function summaryHtml(t){
+    var save = t.savings>0.005 ? '<div class="sum-row"><span>Wholesale savings</span><span class="save">– '+C.formatPrice(t.savings)+'</span></div>' : '';
+    return '<div class="summary">'+
+      '<h3>Order Summary</h3>'+
+      '<div class="sum-row"><span>Items</span><span>'+t.count+'</span></div>'+
+      '<div class="sum-row"><span>Subtotal</span><span>'+C.formatPrice(t.subtotal)+'</span></div>'+
+      save+
+      '<div class="sum-row muted"><span>Delivery</span><span>Quoted on confirmation</span></div>'+
+      '<div class="sum-row total"><span>Total</span><b>'+C.formatPrice(t.subtotal)+'</b></div>'+
+
+      '<form id="checkoutForm" novalidate style="margin-top:6px">'+
+        '<div class="field" id="f-name"><label>Full name <span class="req">*</span></label>'+
+          '<input name="name" autocomplete="name" placeholder="e.g. Ahmad bin Ali"/><span class="err">Please enter your name.</span></div>'+
+        '<div class="field" id="f-phone"><label>Phone / WhatsApp <span class="req">*</span></label>'+
+          '<input name="phone" autocomplete="tel" inputmode="tel" placeholder="e.g. 012-345 6789"/><span class="err">Please enter a valid phone number.</span></div>'+
+        '<div class="field"><label>Buyer type</label>'+
+          '<select name="type"><option value="Retail / Individual">Retail / Individual</option>'+
+          '<option value="Workshop / Trade">Workshop / Trade (wholesale)</option></select></div>'+
+        '<div class="field" id="company-wrap" style="display:none"><label>Workshop / company name</label>'+
+          '<input name="company" placeholder="Business name"/></div>'+
+        '<div class="field"><label>Delivery address</label>'+
+          '<textarea name="address" placeholder="Where should we ship the parts? (Leave blank for self-collect)"></textarea></div>'+
+        '<div class="field"><label>Notes</label>'+
+          '<textarea name="notes" placeholder="Vehicle, gearbox code, or anything we should know"></textarea></div>'+
+        '<button type="submit" class="btn btn-wa btn-block" style="margin-top:4px">'+
+          '<svg viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163a11.867 11.867 0 01-1.587-5.945C.16 5.335 5.495 0 12.05 0a11.82 11.82 0 018.413 3.488 11.82 11.82 0 013.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 01-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 001.519 5.262l-.999 3.648 3.969-1.04z"/></svg>'+
+          'Place order on WhatsApp</button>'+
+        '<button type="button" class="btn btn-ghost btn-block btn-sm" id="clearBtn" style="margin-top:9px">Clear cart</button>'+
+        '<p style="font-size:11.5px;color:var(--dim);text-align:center;margin-top:10px">No payment is taken online. We confirm stock, final price &amp; delivery before you pay.</p>'+
+      '</form>'+
+    '</div>';
+  }
+
+  function render(){
+    var items = S.getItems();
+    if (!items.length){ root.innerHTML = emptyState(); return; }
+
+    var lines = items.map(function(i){ return S.lineFor(i); }).filter(Boolean);
+    var t = S.totals();
+
+    root.innerHTML =
+      '<div class="cart-wrap">'+
+        '<div><div class="cart-items">'+ lines.map(rowFor).join('') +'</div>'+
+          '<a href="shop.html" class="btn btn-ghost btn-sm" style="margin-top:16px">← Continue shopping</a></div>'+
+        summaryHtml(t)+
+      '</div>';
+
+    bindRows();
+    bindForm();
+  }
+
+  function bindRows(){
+    Array.prototype.forEach.call(root.querySelectorAll('.cart-row'), function(row){
+      var id = row.getAttribute('data-id');
+      row.querySelector('[data-act="inc"]').addEventListener('click', function(){
+        var it = S.getItems().find(function(x){return x.id===id;}); S.setQty(id, (it?it.qty:1)+1); render();
+      });
+      row.querySelector('[data-act="dec"]').addEventListener('click', function(){
+        var it = S.getItems().find(function(x){return x.id===id;}); S.setQty(id, (it?it.qty:1)-1); render();
+      });
+      row.querySelector('[data-act="qty"]').addEventListener('change', function(e){
+        S.setQty(id, e.target.value); render();
+      });
+      row.querySelector('[data-act="remove"]').addEventListener('click', function(){
+        S.remove(id); render();
+      });
+    });
+  }
+
+  function bindForm(){
+    var form = document.getElementById('checkoutForm');
+    if (!form) return;
+    var typeSel = form.querySelector('[name="type"]');
+    var companyWrap = document.getElementById('company-wrap');
+    typeSel.addEventListener('change', function(){
+      companyWrap.style.display = /Trade/.test(typeSel.value) ? 'flex' : 'none';
+    });
+    document.getElementById('clearBtn').addEventListener('click', function(){
+      if (confirm('Remove all items from your cart?')){ S.clear(); render(); }
+    });
+
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      var name = form.name.value.trim();
+      var phone = form.phone.value.trim();
+      var ok = true;
+      var fName = document.getElementById('f-name'), fPhone = document.getElementById('f-phone');
+      fName.classList.toggle('invalid', !name); if(!name) ok=false;
+      var phoneOk = /[0-9]{7,}/.test(phone.replace(/[^0-9]/g,''));
+      fPhone.classList.toggle('invalid', !phoneOk); if(!phoneOk) ok=false;
+      if (!ok){ S.toast('Please fill in your name and phone number', false); return; }
+
+      var customer = {
+        name: name, phone: phone,
+        type: typeSel.value,
+        company: form.company ? form.company.value.trim() : '',
+        address: form.address.value.trim(),
+        notes: form.notes.value.trim(),
+      };
+      var url = S.orderUrl(customer);
+      S.toast('Opening WhatsApp to send your order…');
+      window.open(url, '_blank', 'noopener');
+    });
+  }
+
+  document.addEventListener('cart:change', S.updateBadge);
+  render();
+})();
+</script>
+</body>
+</html>

@@ -309,6 +309,37 @@ footer{border-top:1px solid var(--line-soft);margin-top:80px;padding:54px 0 30px
   .nav-cta .btn-ghost{display:none}
   .console{aspect-ratio:auto;height:74vh;min-height:380px}
 }
+
+/* ---------- cart icon in nav ---------- */
+.cart-link{position:relative;display:inline-flex;align-items:center;justify-content:center;
+  width:42px;height:42px;border-radius:11px;border:1px solid var(--line);background:rgba(16,36,72,.5);color:var(--white)}
+.cart-link:hover{border-color:var(--cyan)}
+.cart-link svg{width:20px;height:20px;stroke:var(--white);fill:none}
+.cart-badge{position:absolute;top:-7px;right:-7px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;
+  background:var(--red);color:#fff;font-size:11px;font-weight:800;display:none;align-items:center;justify-content:center;
+  font-family:var(--mono);box-shadow:0 0 0 2px var(--navy-900)}
+.cart-badge.show{display:inline-flex}
+
+/* ---------- spare-parts teaser section ---------- */
+.parts-sec{position:relative;z-index:2}
+.parts-head{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:26px}
+.part-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.pcard{display:flex;flex-direction:column;gap:7px;padding:14px;border-radius:16px;
+  border:1px solid var(--line-soft);background:linear-gradient(180deg,rgba(11,26,58,.55),rgba(8,18,38,.55));transition:.18s}
+.pcard:hover{transform:translateY(-3px);border-color:var(--line);box-shadow:0 14px 40px rgba(2,8,20,.5)}
+.pthumb{aspect-ratio:1/1;border-radius:11px;overflow:hidden;background:var(--ink2);border:1px solid var(--line-soft)}
+.pthumb img{width:100%;height:100%;object-fit:cover}
+.pcat{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--cyan-deep,#1f8fc4)}
+.pname{font-weight:700;font-size:14.5px;color:var(--white);line-height:1.3}
+.pprice{font-family:var(--head);font-size:18px;font-weight:800;color:var(--white);margin-top:auto;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.pprice .ws{font-family:var(--mono);font-size:11px;font-weight:600;color:#5ad19a}
+.parts-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:30px}
+.parts-grid a{display:flex;align-items:center;gap:10px;padding:13px 15px;border-radius:12px;
+  border:1px solid var(--line-soft);background:rgba(16,36,72,.35);color:var(--text);font-weight:600;font-size:14px;transition:.15s}
+.parts-grid a:hover{border-color:var(--cyan);color:var(--white);background:rgba(16,36,72,.6)}
+.parts-grid a .dot{width:8px;height:8px;border-radius:50%;background:var(--cyan);flex-shrink:0}
+@media(max-width:860px){.part-strip{grid-template-columns:repeat(2,1fr)}.parts-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.part-strip{grid-template-columns:1fr 1fr}.parts-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -324,6 +355,7 @@ footer{border-top:1px solid var(--line-soft);margin-top:80px;padding:54px 0 30px
         <img src="assets/mna-logo.png" alt="MNA Dynamic Torque" />
       </a>
       <div class="nav-links" id="navlinks">
+        <a href="shop.html">Spare Parts</a>
         <a href="#experience">3D Experience</a>
         <a href="#services">Services</a>
         <a href="#why">Why MNA</a>
@@ -331,7 +363,10 @@ footer{border-top:1px solid var(--line-soft);margin-top:80px;padding:54px 0 30px
         <a href="#contact">Contact</a>
       </div>
       <div class="nav-cta">
-        <a class="btn btn-ghost" href="tel:+60123456789">Call</a>
+        <a class="cart-link" href="cart.html" aria-label="Cart">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+          <span class="cart-badge" data-cart-badge>0</span>
+        </a>
         <a class="btn btn-wa" href="https://wa.me/60123456789" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163a11.867 11.867 0 01-1.587-5.945C.16 5.335 5.495 0 12.05 0a11.82 11.82 0 018.413 3.488 11.82 11.82 0 013.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 01-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 001.519 5.262l-.999 3.648 3.969-1.04z"/></svg>
           WhatsApp
@@ -418,6 +453,32 @@ footer{border-top:1px solid var(--line-soft);margin-top:80px;padding:54px 0 30px
         <h3>DTC & Limp-Mode Scan</h3><p>Stuck in limp mode or a warning light on? Full fault-code read with a plain-language explanation of what each one means.</p></div>
       <div class="card reveal"><div class="ic"><svg viewBox="0 0 24 24"><path d="M9 11l3 3 7-7"/><path d="M21 12a9 9 0 11-6.2-8.5"/></svg></div>
         <h3>Pre-Purchase Inspection</h3><p>Buying a used CVT car? We inspect the transmission first so you don't inherit a RM8,000 surprise.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SPARE PARTS ===================== -->
+<section class="sec parts-sec" id="parts">
+  <div class="wrap">
+    <div class="parts-head reveal">
+      <div>
+        <div class="divider"></div>
+        <span class="mono">Spare parts supply</span>
+        <h2>The same parts we trust, <span class="red-italic">now yours to buy</span></h2>
+        <p style="max-width:560px">Genuine-spec CVT &amp; automatic transmission parts — clutch packs, steel plates, valve bodies, torque converters, variator sets, overhaul kits, filters, seals and fluids. Retail &amp; wholesale, shipped Malaysia-wide.</p>
+      </div>
+      <a class="btn btn-cyan" href="shop.html" style="white-space:nowrap">Browse all parts →</a>
+    </div>
+
+    <div class="part-strip reveal" id="partStrip"><!-- featured parts injected --></div>
+
+    <div class="parts-grid reveal">
+      <a href="shop.html?cat=cvt_belt"><span class="dot"></span>CVT Belt &amp; Variator</a>
+      <a href="shop.html?cat=valve_body"><span class="dot"></span>Valve Body &amp; Solenoid</a>
+      <a href="shop.html?cat=torque_conv"><span class="dot"></span>Torque Converter</a>
+      <a href="shop.html?cat=clutch_plate"><span class="dot"></span>Clutch &amp; Steel Plates</a>
+      <a href="shop.html?cat=overhaul_kit"><span class="dot"></span>Overhaul Kits</a>
+      <a href="shop.html?cat=lubricants"><span class="dot"></span>ATF &amp; CVT Fluids</a>
     </div>
   </div>
 </section>
@@ -626,6 +687,31 @@ footer{border-top:1px solid var(--line-soft);margin-top:80px;padding:54px 0 30px
   // ---------- reveal on scroll ----------
   const io = new IntersectionObserver((es) => es.forEach(e => { if (e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} }), {threshold:.12});
   document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+
+<!-- ---------- spare-parts catalogue + cart badge ---------- -->
+<script src="assets/catalog.js"></script>
+<script src="assets/shop.js"></script>
+<script>
+  // Populate the homepage "Featured parts" strip from the live catalogue.
+  (function(){
+    var C = window.MNACatalog, S = window.MNAShop;
+    if (!C) return;
+    var strip = document.getElementById('partStrip');
+    if (strip){
+      var feat = C.featured().slice(0,4);
+      strip.innerHTML = feat.map(function(p){
+        var ws = (p.wholesalePrice && p.minWholesaleQty)
+          ? '<span class="ws">RM '+p.wholesalePrice.toFixed(2)+' @ '+p.minWholesaleQty+'+</span>' : '';
+        return '<a class="pcard" href="product.html?slug='+p.slug+'">'+
+          '<span class="pthumb"><img src="'+C.thumbFor(p)+'" alt="'+p.name+'" loading="lazy"/></span>'+
+          '<span class="pcat">'+(C.categoryInfo(p.category)||{}).name+'</span>'+
+          '<span class="pname">'+p.name+'</span>'+
+          '<span class="pprice">'+C.formatPrice(p.price)+' '+ws+'</span></a>';
+      }).join('');
+    }
+    if (S) S.updateBadge();
+  })();
 </script>
 </body>
 </html>

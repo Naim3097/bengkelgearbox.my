@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Part Details · MNA Dynamic Torque</title>
+<meta name="description" content="Transmission spare part details, specifications and vehicle compatibility — MNA Dynamic Torque spare parts supply." />
+<meta name="theme-color" content="#050b1c" />
+<link rel="icon" type="image/png" href="assets/mna-logo.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira:ital,wght@0,600;0,700;0,800;1,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/shop.css" />
+</head>
+<body>
+
+<div data-mount="header"></div>
+
+<div class="wrap">
+  <div id="pdRoot">
+    <!-- product detail injected here -->
+  </div>
+</div>
+
+<div data-mount="footer"></div>
+
+<script src="assets/catalog.js"></script>
+<script src="assets/shop.js"></script>
+<script>
+(function(){
+  var C = window.MNACatalog, S = window.MNAShop;
+  S.mountChrome('shop');
+
+  var params = new URLSearchParams(location.search);
+  var slug = params.get('slug');
+  var p = slug ? C.bySlug(slug) : null;
+  var root = document.getElementById('pdRoot');
+
+  if (!p){
+    root.innerHTML = '<div class="empty">'+
+      '<svg viewBox="0 0 24 24" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>'+
+      '<h3>Part not found</h3><p>This part may have moved or is no longer listed.</p>'+
+      '<a class="btn btn-cyan" href="shop.html" style="margin-top:16px">Browse all parts</a></div>';
+    return;
+  }
+
+  document.title = p.name + ' · MNA Dynamic Torque';
+  var cat = C.categoryInfo(p.category) || {name:p.category};
+  var out = p.stockStatus==='out_of_stock';
+
+  function stockLine(){
+    if (out) return '<span class="tag tag-out">Out of stock</span>';
+    if (p.stockStatus==='low_stock') return '<span class="tag tag-low">Low stock — '+p.stockQty+' left</span>';
+    return '<span class="tag tag-stock">In stock</span>';
+  }
+
+  var specRows = Object.keys(p.specifications||{}).map(function(k){
+    return '<tr><td>'+k.replace(/([A-Z])/g,' $1')+'</td><td>'+p.specifications[k]+'</td></tr>';
+  }).join('');
+
+  var vehicles = (p.compatibleVehicles||[]).map(function(v){return '<span class="chip">'+v+'</span>';}).join('');
+  var boxes = (p.compatibleGearboxes||[]).map(function(v){return '<span class="chip">'+v+'</span>';}).join('');
+
+  var wsBlock = (p.wholesalePrice && p.minWholesaleQty)
+    ? '<div class="ws-chip"><b>'+C.formatPrice(p.wholesalePrice)+'</b><span>WHOLESALE · '+p.minWholesaleQty+'+ UNITS</span></div>'
+    : '';
+
+  root.innerHTML =
+    '<div class="breadcrumb" style="padding-top:22px">'+
+      '<a href="index.html">Home</a><span>/</span>'+
+      '<a href="shop.html">Spare Parts</a><span>/</span>'+
+      '<a href="shop.html?cat='+p.category+'">'+cat.name+'</a><span>/</span><span>'+p.name+'</span></div>'+
+    '<div class="pd">'+
+      '<div class="pd-media">'+
+        '<div class="pd-hero"><img src="'+C.thumbFor(p)+'" alt="'+p.name+'"/>'+
+          '<div class="badges" style="position:absolute;top:14px;left:14px;display:flex;gap:7px">'+
+            (p.isFeatured?'<span class="tag tag-feat">Featured</span>':'')+stockLine()+'</div></div>'+
+      '</div>'+
+      '<div class="pd-info">'+
+        '<div class="pd-cat">'+cat.name+'</div>'+
+        '<h1>'+p.name+'</h1>'+
+        '<div class="sku">SKU '+p.sku+'</div>'+
+        '<p class="lead">'+p.description+'</p>'+
+        '<div class="price-block">'+
+          '<div><div class="big">'+C.formatPrice(p.price)+'</div><div class="unit">per unit · incl. SST where applicable</div></div>'+
+          wsBlock+
+        '</div>'+
+        '<div class="add-row">'+
+          '<div class="qty">'+
+            '<button type="button" id="dec" aria-label="Decrease">–</button>'+
+            '<input id="qty" type="number" min="1" max="'+(p.stockQty||99)+'" value="1" inputmode="numeric"/>'+
+            '<button type="button" id="inc" aria-label="Increase">+</button>'+
+          '</div>'+
+          '<button class="btn btn-cyan" id="addBtn"'+(out?' disabled':'')+'>'+(out?'Sold out':'Add to cart')+'</button>'+
+          '<a class="btn btn-wa" id="askBtn" href="#" target="_blank" rel="noopener">Ask about this part</a>'+
+        '</div>'+
+        '<div class="sec-title">Specifications</div>'+
+        '<table class="spec-table">'+specRows+'</table>'+
+        (vehicles?('<div class="sec-title">Compatible Vehicles</div><div class="chips">'+vehicles+'</div>'):'')+
+        (boxes?('<div class="sec-title">Compatible Gearboxes</div><div class="chips">'+boxes+'</div>'):'')+
+        '<p style="font-size:12.5px;color:var(--dim);margin-top:8px">Always confirm fitment by gearbox code before ordering. Our team can verify compatibility on WhatsApp.</p>'+
+      '</div>'+
+    '</div>';
+
+  // qty controls
+  var qty = document.getElementById('qty');
+  var maxQ = p.stockQty || 99;
+  function clamp(){ var v = parseInt(qty.value,10)||1; qty.value = Math.max(1, Math.min(maxQ, v)); }
+  document.getElementById('inc').addEventListener('click', function(){ qty.value=(parseInt(qty.value,10)||1)+1; clamp(); });
+  document.getElementById('dec').addEventListener('click', function(){ qty.value=(parseInt(qty.value,10)||1)-1; clamp(); });
+  qty.addEventListener('change', clamp);
+
+  if (!out){
+    document.getElementById('addBtn').addEventListener('click', function(){
+      S.add(p.id, parseInt(qty.value,10)||1);
+    });
+  }
+  var askMsg = 'Hi MNA, I'+"'"+'m interested in: '+p.name+' ('+p.sku+'). Is it in stock?';
+  document.getElementById('askBtn').href = 'https://wa.me/'+S.WHATSAPP+'?text='+encodeURIComponent(askMsg);
+
+  // related parts (same category)
+  var related = C.inCategory(p.category).filter(function(x){return x.id!==p.id;}).slice(0,4);
+  if (related.length){
+    var rel = '<section style="padding:10px 0 70px"><div class="sec-title" style="font-size:14px;margin-bottom:14px">More in '+cat.name+'</div><div class="grid">';
+    related.forEach(function(r){
+      rel += '<article class="card"><a class="thumb" href="product.html?slug='+r.slug+'"><img src="'+C.thumbFor(r)+'" alt="'+r.name+'"/></a>'+
+        '<div class="body"><h3><a href="product.html?slug='+r.slug+'">'+r.name+'</a></h3>'+
+        '<div class="sku">'+r.sku+'</div>'+
+        '<div class="price-row"><span class="price">'+C.formatPrice(r.price)+'</span></div>'+
+        '<div class="card-actions"><a class="btn btn-ghost btn-sm btn-block" href="product.html?slug='+r.slug+'">View</a></div></div></article>';
+    });
+    rel += '</div></section>';
+    root.insertAdjacentHTML('beforeend', rel);
+  }
+})();
+</script>
+</body>
+</html>

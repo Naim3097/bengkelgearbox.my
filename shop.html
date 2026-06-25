@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Spare Parts Shop · MNA Dynamic Torque — CVT & Auto Transmission Parts</title>
+<meta name="description" content="Genuine-spec CVT and automatic transmission spare parts from MNA Dynamic Torque — clutch plates, steel plates, valve bodies, torque converters, overhaul kits, filters, seals and ATF/CVT fluids. Retail & wholesale. Order on WhatsApp." />
+<meta name="theme-color" content="#050b1c" />
+<meta property="og:title" content="MNA Dynamic Torque — Spare Parts Shop" />
+<meta property="og:description" content="CVT & automatic transmission spare parts. Retail & wholesale. Order on WhatsApp." />
+<meta property="og:image" content="assets/mna-packaging.jpg" />
+<link rel="icon" type="image/png" href="assets/mna-logo.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira:ital,wght@0,600;0,700;0,800;1,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/shop.css" />
+</head>
+<body>
+
+<div data-mount="header"></div>
+
+<!-- ===================== PAGE HEAD ===================== -->
+<section class="page-head"><div class="wrap">
+  <div class="breadcrumb"><a href="index.html">Home</a><span>/</span><span>Spare Parts</span></div>
+  <span class="eyebrow"><span class="pulse"></span> GENUINE-SPEC · CVT & AUTO TRANSMISSION</span>
+  <h1>Spare Parts <span class="chrome">Supply</span></h1>
+  <p>The same parts we trust inside our own rebuilds — clutch packs, steel plates, valve bodies, torque converters, variator sets, overhaul kits, filters, seals and fluids. Retail and wholesale, shipped Malaysia-wide.</p>
+</div></section>
+
+<!-- ===================== SHOP ===================== -->
+<div class="wrap">
+  <div class="shop">
+    <!-- filters -->
+    <aside class="filters">
+      <h4>Categories</h4>
+      <div class="cat-list" id="catList"></div>
+      <h4>Need help?</h4>
+      <a class="btn btn-wa btn-block btn-sm" href="https://wa.me/60123456789?text=Hi%20MNA%2C%20I%20need%20help%20finding%20a%20part." target="_blank" rel="noopener">Ask on WhatsApp</a>
+    </aside>
+
+    <!-- results -->
+    <main>
+      <div class="toolbar">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input id="search" type="search" placeholder="Search part, SKU, vehicle or gearbox…" autocomplete="off" />
+        </div>
+        <select class="sortsel" id="sort">
+          <option value="featured">Featured</option>
+          <option value="price-asc">Price: Low to High</option>
+          <option value="price-desc">Price: High to Low</option>
+          <option value="name">Name: A–Z</option>
+        </select>
+      </div>
+      <div class="result-count" id="count"></div>
+      <div class="grid" id="grid"></div>
+    </main>
+  </div>
+</div>
+
+<div data-mount="footer"></div>
+
+<script src="assets/catalog.js"></script>
+<script src="assets/shop.js"></script>
+<script>
+(function(){
+  var C = window.MNACatalog, S = window.MNAShop;
+  S.mountChrome('shop');
+
+  var state = { cat: 'all', q: '', sort: 'featured' };
+
+  // read ?cat= from URL
+  var params = new URLSearchParams(location.search);
+  if (params.get('cat')) state.cat = params.get('cat');
+  if (params.get('q')) state.q = params.get('q');
+
+  var catList = document.getElementById('catList');
+  var grid = document.getElementById('grid');
+  var countEl = document.getElementById('count');
+  var searchEl = document.getElementById('search');
+  var sortEl = document.getElementById('sort');
+
+  searchEl.value = state.q;
+
+  function countIn(slug){ return C.products.filter(function(p){return p.category===slug;}).length; }
+
+  function renderCats(){
+    var html = '<button data-cat="all">All Parts <span class="n">'+C.products.length+'</span></button>';
+    C.categories.forEach(function(c){
+      html += '<button data-cat="'+c.slug+'">'+c.name+' <span class="n">'+countIn(c.slug)+'</span></button>';
+    });
+    catList.innerHTML = html;
+    Array.prototype.forEach.call(catList.querySelectorAll('button'), function(b){
+      b.classList.toggle('active', b.getAttribute('data-cat')===state.cat);
+      b.addEventListener('click', function(){
+        state.cat = b.getAttribute('data-cat');
+        Array.prototype.forEach.call(catList.querySelectorAll('button'), function(x){
+          x.classList.toggle('active', x===b);
+        });
+        render();
+      });
+    });
+  }
+
+  function stockBadge(p){
+    if (p.stockStatus==='out_of_stock') return '<span class="tag tag-out">Out of stock</span>';
+    if (p.stockStatus==='low_stock') return '<span class="tag tag-low">Low stock</span>';
+    return '<span class="tag tag-stock">In stock</span>';
+  }
+
+  function cardFor(p){
+    var ws = (p.wholesalePrice && p.minWholesaleQty)
+      ? '<span class="ws">RM '+p.wholesalePrice.toFixed(2)+' @ '+p.minWholesaleQty+'+</span>' : '';
+    var out = p.stockStatus==='out_of_stock';
+    var cat = C.categoryInfo(p.category);
+    return '<article class="card">'+
+      '<a class="thumb" href="product.html?slug='+p.slug+'">'+
+        '<img src="'+C.thumbFor(p)+'" alt="'+p.name+'" loading="lazy"/>'+
+        '<div class="badges">'+(p.isFeatured?'<span class="tag tag-feat">Featured</span>':'')+stockBadge(p)+'</div>'+
+      '</a>'+
+      '<div class="body">'+
+        '<div class="cat">'+(cat?cat.name:p.category)+'</div>'+
+        '<h3><a href="product.html?slug='+p.slug+'">'+p.name+'</a></h3>'+
+        '<div class="sku">'+p.sku+'</div>'+
+        '<div class="price-row"><span class="price">'+C.formatPrice(p.price)+'</span>'+ws+'</div>'+
+        '<div class="card-actions">'+
+          '<a class="btn btn-ghost btn-sm" href="product.html?slug='+p.slug+'">Details</a>'+
+          '<button class="btn btn-cyan btn-sm" data-add="'+p.id+'"'+(out?' disabled':'')+'>'+(out?'Sold out':'Add to cart')+'</button>'+
+        '</div>'+
+      '</div>'+
+    '</article>';
+  }
+
+  function render(){
+    var list = state.cat==='all' ? C.products.slice() : C.products.filter(function(p){return p.category===state.cat;});
+    if (state.q) {
+      var matched = C.search(state.q);
+      var ids = {}; matched.forEach(function(m){ ids[m.id]=true; });
+      list = list.filter(function(p){ return ids[p.id]; });
+    }
+    if (state.sort==='price-asc') list.sort(function(a,b){return a.price-b.price;});
+    else if (state.sort==='price-desc') list.sort(function(a,b){return b.price-a.price;});
+    else if (state.sort==='name') list.sort(function(a,b){return a.name.localeCompare(b.name);});
+    else list.sort(function(a,b){return (b.isFeatured?1:0)-(a.isFeatured?1:0);});
+
+    countEl.textContent = list.length + (list.length===1?' part':' parts') +
+      (state.cat!=='all' ? ' in ' + (C.categoryInfo(state.cat)||{}).name : '') +
+      (state.q ? ' matching “'+state.q+'”' : '');
+
+    if (!list.length){
+      grid.innerHTML = '<div class="empty" style="grid-column:1/-1">'+
+        '<svg viewBox="0 0 24 24" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>'+
+        '<h3>No parts found</h3><p>Try a different search or category — or ask us on WhatsApp.</p></div>';
+      return;
+    }
+    grid.innerHTML = list.map(cardFor).join('');
+    Array.prototype.forEach.call(grid.querySelectorAll('[data-add]'), function(btn){
+      btn.addEventListener('click', function(){ S.add(btn.getAttribute('data-add'), 1); });
+    });
+  }
+
+  var t;
+  searchEl.addEventListener('input', function(){
+    clearTimeout(t);
+    t = setTimeout(function(){ state.q = searchEl.value; render(); }, 160);
+  });
+  sortEl.addEventListener('change', function(){ state.sort = sortEl.value; render(); });
+
+  renderCats();
+  render();
+})();
+</script>
+</body>
+</html>
