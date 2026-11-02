@@ -730,7 +730,7 @@
     <span><span id="rpm-v">0</span></span>
   </div>
   <div class="btns">
-    <button class="btn pe" data-cmd="mode" title="Toggle hologram vs studio rendering">◐ <span id="mode-label">STUDIO MODE</span></button>
+    <button class="btn pe" data-cmd="mode" title="Cycle hologram / studio / real rendering">◐ <span id="mode-label">STUDIO MODE</span></button>
     <button class="btn pe" data-cmd="explode" title="Separate the components axially">EXPLODE</button>
     <button class="btn pe" data-cmd="wire" title="Show only edges (X-ray)">WIREFRAME</button>
     <button class="btn pe" data-cmd="section" title="Cut-away view">SECTION</button>
@@ -1049,6 +1049,37 @@ const matNode = new THREE.MeshBasicMaterial({ color:0x3ddc97, transparent:true, 
 
 const allClippableMats = [matAlloy, matSteel, matBearing, matBall, matBelt];
 
+/* ============================================================
+   PHOTOREAL P1 — MaterialLookRegistry
+   REAL mode restyles EVERY material the same way applyMode()
+   already restyles the five shared ones: by mutating the same
+   instances in place (kits keep their references, so their live
+   APIs — setTemp/setHighlight/EDS glow — keep working untouched).
+   Each entry snapshots its as-built (hologram) look at
+   registration; non-REAL modes restore that snapshot.
+============================================================ */
+const LOOK_REGISTRY = [];
+function snapLook(m){
+  return {
+    color: m.color ? m.color.getHex() : undefined,
+    emissive: m.emissive ? m.emissive.getHex() : undefined,
+    emissiveInt: m.emissiveIntensity,
+    opacity: m.opacity, transparent: m.transparent, depthWrite: m.depthWrite,
+    rough: m.roughness, metal: m.metalness, envInt: m.envMapIntensity,
+    cc: m.clearcoat, ccRough: m.clearcoatRoughness,
+  };
+}
+function regMat(mat, family){
+  if (!mat || (mat.userData && mat.userData.__lookReg)) return mat;
+  (mat.userData || (mat.userData = {})).__lookReg = true;
+  LOOK_REGISTRY.push({ mat, family, snap: snapLook(mat) });
+  return mat;
+}
+function regKit(materials, famMap, fallback = 'machSteel'){
+  if (!materials) return;
+  for (const [k, mat] of Object.entries(materials)) regMat(mat, famMap[k] || fallback);
+}
+
 // -- Scene-walking section view (Phase 4.5 rework) ----------------------------
 // The 5 materials above are *seed* clippables — every component kit creates
 // its own materials internally (clutch plates, planetary gears, damper plates,
@@ -1219,6 +1250,11 @@ revClutchKit.group.position.set(PRIMARY_X, 0, -152);
 scene.add(fwdClutchKit.group);
 scene.add(revClutchKit.group);
 
+// PHOTOREAL P1 — register kit materials for the REAL look
+const CLUTCH_FAMS = { matHousing:'hardSteel', matSteel:'machSteel', matFriction:'friction', matPiston:'machSteel', matSpring:'springSteel' };
+regKit(fwdClutchKit.refs.materials, CLUTCH_FAMS);
+regKit(revClutchKit.refs.materials, CLUTCH_FAMS);
+
 // Case web grounding the REV brake (audit F2): a static annular rib with
 // outer spline tabs — the visual anchor telling the viewer these steel
 // plates are splined INTO the housing, not spinning.  Child of the brake
@@ -1254,6 +1290,7 @@ const planetaryKit = buildPlanetary({ name: 'planetary', edgeMat: matEdge });
 planetaryKit.group.rotation.x = -Math.PI/2;       // align local +Y with world -Z
 planetaryKit.group.position.set(PRIMARY_X, 0, -135);   // packed between FWD clutch and REV brake (F1 repack)
 scene.add(planetaryKit.group);
+regKit(planetaryKit.refs.materials, { matSun:'machSteel', matPlanet:'machSteel', matRing:'machSteel', matCarrier:'hardSteel', matBand:'hardSteel' });
 
 /* ============================================================
    PHASE 3.3 — Oil pump (primary-shaft driven)
@@ -1269,6 +1306,7 @@ pumpKit.group.rotation.x = Math.PI/2;             // local +Y → world +Z
 // → Belleville (76-80) → pump cartridge (82+), as in the service manual.
 pumpKit.group.position.set(PRIMARY_X, 0, 82);
 scene.add(pumpKit.group);
+regKit(pumpKit.refs.materials, { matBody:'castAlu', matCover:'castAlu', matGear:'machSteel', matPort:'machSteel' });
 
 /* ============================================================
    PHASE 3.4 — Valve body + EDS solenoid trio
@@ -1282,6 +1320,14 @@ const valveBodyKit = buildValveBody({ name: 'valve-body', edgeMat: matEdge });
 // to mount it BELOW the variator (-Y world).  No rotation — already aligned.
 valveBodyKit.group.position.set(0, -120, 0);
 scene.add(valveBodyKit.group);
+regKit(valveBodyKit.refs.materials, { matBlock:'castAlu', matSolBody:'machSteel', matCoil:'copperCoil', matCap:'plastic', matSpool:'machSteel' });
+// the EDS cans clone their body/coil/spool materials per solenoid — register those too
+valveBodyKit.refs.solenoids.forEach(s => {
+  const r = s.userData.refs;
+  regMat(r.sBody?.material, 'machSteel');
+  regMat(r.coil?.material,  'copperCoil');
+  regMat(r.spool?.material, 'machSteel');
+});
 
 /* ============================================================
    PHASE 3 INTEGRATION — Visible drivetrain shaft connecting the
@@ -1297,6 +1343,7 @@ scene.add(valveBodyKit.group);
     transparent: true, opacity: 0.85,
     emissive: 0x081116, emissiveIntensity: 0.35,
   });
+  regMat(inputShaftMat, 'machSteel');
   // AUDIT FIX F3/F5 — this rod is now the PUMP DRIVE QUILL SHAFT: in the real
   // VT2 a long thin shaft runs from the engine coupling straight through the
   // hollow primary shaft to drive the oil pump at ENGINE speed (that's why
@@ -1346,6 +1393,11 @@ tcKit.group.rotation.x = -Math.PI/2;           // local +Y → world -Z
 // VT2 damper centre -194 (spans -180..-208); VT3 TC centre -206 (deeper).
 tcKit.group.position.set(PRIMARY_X, 0, (VARIANT === 'VT3') ? -206 : -194);
 scene.add(tcKit.group);
+regKit(tcKit.refs.materials, {
+  matPlate:'hardSteel', matHub:'machSteel', matSpring:'springSteel',          // VT2 damper
+  matCasing:'hardSteel', matImpeller:'machSteel', matTurbine:'machSteel',     // VT3 torque converter
+  matStator:'hardSteel', matLockup:'friction',
+});
 
 /* ============================================================
    PHASE 3.6 — Output drivetrain
@@ -1379,6 +1431,7 @@ outputKit.group.rotation.set(Math.PI/2, 0, 0);
 // Pinion z = -95 sits right on the secondary output spline (z ≈ -85..-117).
 outputKit.group.position.set(SECONDARY_X, 0, -95);
 scene.add(outputKit.group);
+regKit(outputKit.refs.materials, { matGear:'machSteel', matDiff:'castIron', matAxle:'machSteel' });
 
 /* ============================================================
    PARK LOCK (audit F15) — the real VT2 has a mechanical park lock (Punch
@@ -1551,9 +1604,11 @@ const caseHousing = (() => {
     clippingPlanes: [], clipShadows: true,
   });
   allClippableMats.push(matCase);   // participates in SECTION cut-away
+  regMat(matCase, 'castAlu');
   const matCaseEdge = new THREE.LineBasicMaterial({
     color: 0x8fb6c4, transparent: true, opacity: 0.30, depthWrite: false,
   });
+  regMat(matCaseEdge, 'lineEdge');
 
   // ---- MAIN CASE: kidney twin-bore profile extruded along Z ----
   // Two bores of radius `r` centred on the primary/secondary shafts (x=±77.5);
@@ -1624,6 +1679,7 @@ const caseHousing = (() => {
       depthWrite: false, clippingPlanes: [], clipShadows: true,
     });
     allClippableMats.push(matPan);
+    regMat(matPan, 'paintedPan');
     const panGeom = new THREE.ExtrudeGeometry(panShape, { depth: pz1 - pz0, bevelEnabled: false, curveSegments: 16 });
     panGeom.translate(0, 0, pz0);
     const pan = new THREE.Mesh(panGeom, matPan);
@@ -1692,6 +1748,7 @@ const caseHousing = (() => {
       transparent: true, opacity: 0.95, clippingPlanes: [], clipShadows: true,
     });
     allClippableMats.push(matExt);
+    regMat(matExt, 'plastic');
     const cyl = (r, h, mat, seg = 14) => new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, seg), mat);
 
     // Breather pipe (bent tube on the crown) + cream cap
@@ -2249,6 +2306,7 @@ const matSpring = new THREE.MeshPhysicalMaterial({
   transparent:true, opacity:0.94, clippingPlanes:[]
 });
 allClippableMats.push(matSpring);
+regMat(matSpring, 'springSteel');
 
 /* ---- SECONDARY: through-shaft + flange + output spline ---- */
 {
@@ -2834,7 +2892,85 @@ const MODE_DEFS = {
     },
     edgeOpacity: 0.06,
   },
+  /* PHOTOREAL P1 — REAL: opaque metal on a white stage.  P1 ships flat-value
+     PBR (no maps yet); the studio stage (IBL/cyclorama/shadows/SMAA) lands in
+     P2 and texture maps in P3 of the photoreal plan. */
+  real: {
+    clearColor: 0xf2f1ee, clearAlpha: 1.0,
+    exposure: 1.0,
+    camFill: 0.35,
+    bloomStrength: 0.0, bloomRadius: 0.0, bloomThreshold: 1.0,
+    filmIntensity: 0.0,
+    rainOpacity: 0.0, scanOpacity: 0.0, vignetteOpacity: 0.0,
+    envIntensity: 1.0,
+    studioSoftbox: 1.0, hemi: 0.8,
+    amb: { color:0xffffff, intensity:0.4 },
+    keyCol: 0xfff1e0, keyInt: 1.35,
+    rimCol: 0xffffff, rimInt: 0.25,
+    fillCol: 0xf2f6fa, fillInt: 0.6,
+    materials: {
+      // forged/machined steel pulleys & shafts, no holo emissive anywhere
+      alloy: { opacity:1.0, emissive:0x000000, emissiveInt:0.0, color:0xaab2b8, roughness:0.30, metalness:1.0, envInt:1.3 },
+      steel: { opacity:1.0, emissive:0x000000, emissiveInt:0.0, color:0xc2c9cf, roughness:0.20, metalness:1.0, envInt:1.5 },
+      bearing:{ opacity:1.0, emissive:0x000000, emissiveInt:0.0, color:0xd4d9dd, roughness:0.12, metalness:1.0, envInt:1.7 },
+      ball:  { opacity:1.0, emissive:0x000000, emissiveInt:0.0, color:0xe8ecef, roughness:0.05, metalness:1.0, envInt:1.9 },
+      belt:  { opacity:1.0, emissive:0x000000, emissiveInt:0.0, color:0x70767d, roughness:0.36, metalness:1.0, envInt:1.2 },
+    },
+    edgeOpacity: 0.0,
+  },
 };
+
+/* PHOTOREAL P1 — REAL-mode material recipes per family (flat values; texture
+   maps arrive in P3).  Non-REAL modes restore each material's registration
+   snapshot, so HOLOGRAM and STUDIO render exactly as before. */
+const FAMILY_LOOKS = {
+  castAlu:    { color:0x9aa29f, metal:0.85, rough:0.58, envInt:1.2 },
+  machSteel:  { color:0xb9c0c6, metal:1.0,  rough:0.24, envInt:1.4, cc:0.5, ccRough:0.2 },
+  hardSteel:  { color:0x6a7077, metal:1.0,  rough:0.38, envInt:1.2 },
+  friction:   { color:0x2e2219, metal:0.0,  rough:0.92, envInt:0.6 },
+  springSteel:{ color:0x3a3f46, metal:1.0,  rough:0.50, envInt:1.0 },
+  paintedPan: { color:0x17191c, metal:0.0,  rough:0.42, envInt:1.0, cc:0.9, ccRough:0.18 },
+  brass:      { color:0x9a7a4a, metal:1.0,  rough:0.45, envInt:1.2 },
+  copperCoil: { color:0xa66a3a, metal:1.0,  rough:0.35, envInt:1.3 },
+  plastic:    { color:0x101214, metal:0.0,  rough:0.60, envInt:0.8 },
+  sealRubber: { color:0x0c0d0e, metal:0.0,  rough:0.85, envInt:0.5 },
+  castIron:   { color:0x4a4d50, metal:0.9,  rough:0.65, envInt:1.0 },
+  lineEdge:   { lineOpacity:0.0 },
+};
+function applyLooks(mode){
+  for (const r of LOOK_REGISTRY){
+    const m = r.mat, s = r.snap;
+    if (mode === 'real'){
+      const L = FAMILY_LOOKS[r.family] || FAMILY_LOOKS.machSteel;
+      if (L.lineOpacity !== undefined){ m.opacity = L.lineOpacity; continue; }
+      if (m.color && L.color !== undefined) m.color.setHex(L.color);
+      if (m.emissive){ m.emissive.setHex(0x000000); m.emissiveIntensity = 0; }
+      if (m.roughness !== undefined && L.rough !== undefined) m.roughness = L.rough;
+      if (m.metalness !== undefined && L.metal !== undefined) m.metalness = L.metal;
+      if (m.envMapIntensity !== undefined) m.envMapIntensity = L.envInt ?? 1.0;
+      if (m.clearcoat !== undefined){
+        const cc = L.cc ?? 0;
+        if ((m.clearcoat === 0) !== (cc === 0)) m.needsUpdate = true;  // USE_CLEARCOAT define flips → recompile
+        m.clearcoat = cc; m.clearcoatRoughness = L.ccRough ?? 0.2;
+      }
+      m.opacity = L.opacity ?? 1.0;
+      m.transparent = m.opacity < 1.0;
+      m.depthWrite = true;
+    } else {
+      if (s.color !== undefined && m.color) m.color.setHex(s.color);
+      if (s.emissive !== undefined && m.emissive){ m.emissive.setHex(s.emissive); m.emissiveIntensity = s.emissiveInt; }
+      if (s.rough  !== undefined) m.roughness = s.rough;
+      if (s.metal  !== undefined) m.metalness = s.metal;
+      if (s.envInt !== undefined) m.envMapIntensity = s.envInt;
+      if (s.cc !== undefined){
+        if ((m.clearcoat === 0) !== ((s.cc ?? 0) === 0)) m.needsUpdate = true;
+        m.clearcoat = s.cc;
+      }
+      if (s.ccRough!== undefined) m.clearcoatRoughness = s.ccRough;
+      m.opacity = s.opacity; m.transparent = s.transparent; m.depthWrite = s.depthWrite;
+    }
+  }
+}
 
 function applyMode(){
   const m = MODE_DEFS[state.mode];
@@ -2872,7 +3008,9 @@ function applyMode(){
   apply(matBearing, mu.bearing);
   apply(matBall,    mu.ball);
   apply(matBelt,    mu.belt);
-  matEdge.opacity = m.edgeOpacity;
+  // WIREFRAME x-ray must stay readable even in modes that hide edges (REAL)
+  matEdge.opacity = state.wire ? Math.max(0.85, m.edgeOpacity) : m.edgeOpacity;
+  applyLooks(state.mode);   // PHOTOREAL P1 — kit + local materials follow the mode
 }
 
 /* ============================================================
@@ -4998,11 +5136,27 @@ document.querySelectorAll('.btn').forEach(b => {
   b.addEventListener('click', () => {
     const cmd = b.dataset.cmd;
     if (cmd === 'mode'){
-      state.mode = state.mode === 'hologram' ? 'studio' : 'hologram';
+      // PHOTOREAL P1 — three-way cycle: HOLOGRAM → STUDIO → REAL → …
+      const order = ['hologram', 'studio', 'real'];
+      const prev = state.mode;
+      state.mode = order[(order.indexOf(prev) + 1) % order.length];
+      // REAL stages the product: housing shown, holo ambiance off; both
+      // restored to how the user had them when leaving REAL.
+      if (state.mode === 'real'){
+        state._preReal = { amb: ambianceGroup.visible, cas: caseHousing.visible };
+        ambianceGroup.visible = false;
+        caseHousing.visible = true;
+      } else if (prev === 'real' && state._preReal){
+        ambianceGroup.visible = state._preReal.amb;
+        caseHousing.visible = state._preReal.cas;
+      }
+      document.querySelector('[data-cmd=case]')?.classList.toggle('active', caseHousing.visible);
+      document.querySelector('[data-cmd=ambiance]')?.classList.toggle('active', ambianceGroup.visible);
       applyMode();
-      b.classList.toggle('active', state.mode === 'studio');
+      b.classList.toggle('active', state.mode !== 'hologram');
+      // label shows what the NEXT click switches to (existing convention)
       document.getElementById('mode-label').textContent =
-        state.mode === 'studio' ? 'HOLOGRAM MODE' : 'STUDIO MODE';
+        state.mode === 'hologram' ? 'STUDIO MODE' : (state.mode === 'studio' ? 'REAL MODE' : 'HOLOGRAM MODE');
     } else if (cmd === 'sweep'){
       state.sweep = !state.sweep;
       b.classList.toggle('active', state.sweep);
@@ -5015,6 +5169,9 @@ document.querySelectorAll('.btn').forEach(b => {
       // (skipping already-hidden objects + shader effects) so it restores cleanly.
       state.wire = !state.wire;
       b.classList.toggle('active', state.wire);
+      // keep the x-ray readable in REAL mode, where edges are normally hidden
+      matEdge.opacity = state.wire ? Math.max(0.85, MODE_DEFS[state.mode].edgeOpacity)
+                                   : MODE_DEFS[state.mode].edgeOpacity;
       if (state.wire){
         scene.traverse(o => {
           if (o.isMesh && o.visible && o.material && !o.material.isShaderMaterial){
@@ -5059,13 +5216,19 @@ document.querySelectorAll('.btn').forEach(b => {
       _wireHidden.forEach(o => o.visible = true); _wireHidden.length = 0;   // restore x-ray fills
       if (typeof caseHousing !== 'undefined') caseHousing.visible = false;  // hide case
       if (typeof ambianceGroup !== 'undefined') ambianceGroup.visible = true; // ambiance back on (default)
+      matEdge.opacity = MODE_DEFS[state.mode].edgeOpacity;                  // wire now off → mode edge look
+      if (state.mode === 'real'){                                           // REAL keeps its product staging
+        ambianceGroup.visible = false;
+        caseHousing.visible = true;
+      }
       document.querySelectorAll('.btn').forEach(x => x.classList.remove('active'));
       document.querySelector('[data-cmd=ambiance]')?.classList.add('active');
       frameSubject();
       document.querySelector('[data-cmd=rotate]').classList.add('active');
       controls.autoRotate = true; state.rotate = true;
       // mode stays as-is on reset; preserve user preference
-      if (state.mode === 'studio') document.querySelector('[data-cmd=mode]').classList.add('active');
+      if (state.mode !== 'hologram') document.querySelector('[data-cmd=mode]').classList.add('active');
+      if (state.mode === 'real') document.querySelector('[data-cmd=case]')?.classList.add('active');
     } else if (cmd === 'present'){
       document.body.classList.toggle('presentation');
       b.classList.toggle('active', document.body.classList.contains('presentation'));
