@@ -141,6 +141,27 @@
   .scan{position:fixed;inset:0;z-index:2;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(57,194,215,.025) 0 1px,transparent 1px 3px);mix-blend-mode:screen;opacity:.5}
   .vignette{position:fixed;inset:0;z-index:2;pointer-events:none;background:radial-gradient(ellipse at center,transparent 35%,rgba(0,0,0,.78) 100%)}
 
+  /* PHOTOREAL P6 — HUD legibility on the REAL white stage.  Only loose text
+     over the canvas flips to ink; the dark panels/chips already read fine. */
+  body.real-mode .brand h1{color:#1d2126;text-shadow:none}
+  body.real-mode .brand .sub{color:#4b5560}
+  body.real-mode .brand .mark{color:#2c6a7e;text-shadow:none}
+  body.real-mode .topbar .meta{color:#5a646e}
+  body.real-mode .topbar .meta .k{color:#2c6a7e}
+  body.real-mode .topbar .meta .ok{color:#1f7a4a}
+  body.real-mode .vitals .vc .vv{color:#1d2126;text-shadow:none}
+  body.real-mode .vitals .vc .vk{color:#707a84}
+  body.real-mode .vitals .vc .vv .vu{color:#707a84}
+  body.real-mode .vitals .vc.gear .vv{color:#1f7a4a;text-shadow:none}
+  body.real-mode .status,body.real-mode .status-r{color:#707a84}
+  body.real-mode .status .ok{color:#1f7a4a}
+  body.real-mode .corner{border-color:#aab4be;opacity:.8}
+  body.real-mode .xhair{opacity:.25}
+  body.real-mode .callout{color:#eafbff}
+  body.real-mode .callout .desc{color:#4b5560;text-shadow:none}
+  body.real-mode .ctrl-row .lbl{color:#707a84}
+  body.real-mode .ctrl-row .v{color:#1d2126}
+
   .status{position:fixed;bottom:14px;left:36px;z-index:4;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;letter-spacing:.2em;color:var(--text-dim);text-transform:uppercase}
   .status .ok{color:var(--green)}
   .status-r{position:fixed;bottom:14px;right:36px;z-index:4;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;letter-spacing:.2em;color:var(--text-dim);text-transform:uppercase}
@@ -3293,6 +3314,7 @@ function applyMode(){
   if (applyMode._fog === undefined) applyMode._fog = scene.fog;
   scene.fog = isReal ? null : applyMode._fog;
   if (isReal) loadRealTextures();          // P3 — fetch PBR maps on first REAL entry
+  document.body.classList.toggle('real-mode', isReal);   // P6 — HUD ink flips for the white stage
   studioStage.visible = isReal;
   key.castShadow = isReal;
   smaa.enabled = isReal;
