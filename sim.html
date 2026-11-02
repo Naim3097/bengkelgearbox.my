@@ -601,11 +601,13 @@
   <div class="panel" id="panel-spec">
     <h3>CVT UNIT · SPEC <span class="id">VT2-VT3</span></h3>
     <dl class="spec">
+      <dt>Centre dist</dt><dd>155 mm</dd>
       <dt>Sheave OD</dt><dd>150 mm</dd>
       <dt>Half-angle</dt><dd>11.0°</dd>
-      <dt>Belt section</dt><dd>VD 24×9</dd>
-      <dt>Variator span</dt><dd>1.96 → 0.51</dd>
-      <dt>Final drive</dt><dd>5.182 : 1</dd>
+      <dt>Belt</dt><dd>VD 24 mm · 2×9 rings</dd>
+      <dt>Belt radius</dt><dd>30 → 72.5 mm</dd>
+      <dt>Span (meas.)</dt><dd>1.96 → 0.51</dd>
+      <dt>Final drive</dt><dd>5.182 : 1 · 2-stage</dd>
       <dt>Max line P</dt><dd>58 bar</dd>
       <dt>Max input T</dt><dd>—</dd>
       <dt>EDS1/2/3</dt><dd>5.05 Ω · PWM</dd>
@@ -814,12 +816,12 @@
 
 <div class="callout" id="c-fixed">  <div class="tag"><b>P</b> PRIMARY PULLEY</div><div class="desc">hydraulic · input side · 483319/05</div></div>
 <div class="callout" id="c-mov">    <div class="tag"><b>S</b> SECONDARY PULLEY</div><div class="desc">spring + hydraulic · output · 483059705</div></div>
-<div class="callout" id="c-cup">    <div class="tag"><b>P+</b> PRIMARY PISTON CUP</div><div class="desc">Ø132 bore · 6-lug N_in target</div></div>
+<div class="callout" id="c-cup">    <div class="tag"><b>P+</b> PRIMARY PISTON CYLINDER</div><div class="desc">engine side · smooth drum · N_in ring at cover end</div></div>
 <div class="callout" id="c-reluctor"><div class="tag"><b>S+</b> SECONDARY SPRING DOME</div><div class="desc">34 N/mm · 1.45 kN preload</div></div>
 <div class="callout" id="c-bearing"><div class="tag"><b>BT</b> BELT · TOP TANGENT</div><div class="desc">push side · compressive load</div></div>
 <div class="callout" id="c-spline"> <div class="tag"><b>BB</b> BELT · BOTTOM TANGENT</div><div class="desc">slack side</div></div>
-<div class="callout" id="c-belt">   <div class="tag"><b>IN</b> INPUT SHAFT</div><div class="desc">torque converter side</div></div>
-<div class="callout" id="c-shaft">  <div class="tag"><b>OUT</b> OUTPUT FLANGE</div><div class="desc">to differential / final drive</div></div>
+<div class="callout" id="c-belt">   <div class="tag"><b>IN</b> PUMP QUILL SHAFT</div><div class="desc">through hollow primary · engine-speed pump drive</div></div>
+<div class="callout" id="c-shaft">  <div class="tag"><b>OUT</b> OUTPUT GEAR</div><div class="desc">stage 1 → intermediate → crown wheel</div></div>
 
 <div class="xhair" id="xhair"><span></span></div>
 <div id="cap-flash"></div>
@@ -836,14 +838,14 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { FilmPass } from 'three/addons/postprocessing/FilmPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { buildClutchPack }     from './lib/cvt-parts/clutch-pack.js';
-import { buildPlanetary }      from './lib/cvt-parts/planetary.js';
-import { buildOilPump }        from './lib/cvt-parts/oil-pump.js';
-import { buildValveBody }      from './lib/cvt-parts/valve-body.js';
-import { buildTorqueConverter} from './lib/cvt-parts/torque-converter.js';
-import { buildDamper }          from './lib/cvt-parts/damper.js';
-import { buildOilGalleries }    from './lib/effects/oil-flow.js';
-import { buildPressureChambers} from './lib/effects/pressure-chamber.js';
+import { buildClutchPack }     from './lib/cvt-parts/clutch-pack.js?r2';
+import { buildPlanetary }      from './lib/cvt-parts/planetary.js?r2';
+import { buildOilPump }        from './lib/cvt-parts/oil-pump.js?r2';
+import { buildValveBody }      from './lib/cvt-parts/valve-body.js?r3';
+import { buildTorqueConverter} from './lib/cvt-parts/torque-converter.js?r2';
+import { buildDamper }          from './lib/cvt-parts/damper.js?r2';
+import { buildOilGalleries }    from './lib/effects/oil-flow.js?r2';
+import { buildPressureChambers} from './lib/effects/pressure-chamber.js?r2';
 import { buildEdsPulse }        from './lib/effects/eds-pulse.js';
 import { buildDtcTargets }      from './lib/dtc-targets.js';
 import { DTC_EXPLAIN }          from './lib/dtc-explain.js';
@@ -854,7 +856,7 @@ import { SignalHistory, SIGNAL_META } from './lib/ring-buffer.js';
 import { buildOscilloscope }    from './lib/oscilloscope.js';
 import { buildTimeline }        from './lib/timeline.js';
 import { buildReplayPlayer }    from './lib/replay-player.js';
-import { buildOutputDrivetrain } from './lib/cvt-parts/output-drivetrain.js';
+import { buildOutputDrivetrain } from './lib/cvt-parts/output-drivetrain.js?r2';
 import { makeAnalysisEngine }    from './lib/analysis-engine.js';
 import { makeCvtDiagnostics }    from './lib/cvt-diagnostics.js';   // Phase 8.2 — data-driven CVT diagnosis
 import { EVENT_TO_MODE, EVENT_LABELS, DTC_TO_MODE } from './lib/cvt-knowledge.js';
@@ -1184,26 +1186,64 @@ scene.add(SEC_PULLEY);
    torque converter will live in Phase 3.5).  Same x position and rotation
    as PULLEY so their shaft axis aligns with world Z.
 ============================================================ */
-const fwdClutchKit = buildClutchPack({ name: 'fwd-clutch', edgeMat: matEdge });
-const revClutchKit = buildClutchPack({ name: 'rev-clutch', edgeMat: matEdge });
+// AUDIT FIX F4: real proportions — the plate packs are on the order of the
+// pulley radius, and the REVERSE pack is the largest friction element in the
+// box (its steels spline into the HOUSING: it is a case-grounded brake, not a
+// second rotating clutch — audit F2).  3 frictions / 6 surfaces per pack is
+// correct and kept.
+const fwdClutchKit = buildClutchPack({
+  name: 'fwd-clutch', edgeMat: matEdge,
+  outerR: 54, innerR: 24, hubLen: 40, springR: 40,      // Ø116 rotating drum
+});
+const revClutchKit = buildClutchPack({
+  name: 'rev-brake', edgeMat: matEdge,
+  outerR: 66, innerR: 30, hubLen: 34, springR: 48,      // Ø140 stationary brake housing
+});
 
 // Both rotated to align local +Y with world -Z (so stack grows AWAY from primary,
 // piston end ends up furthest from primary — closest to where the TC will sit).
 fwdClutchKit.group.rotation.x = -Math.PI/2;
 revClutchKit.group.rotation.x = -Math.PI/2;
 
-// Tightened spacing — real Punch CVT packs clutch+planetary into ~80mm
-// behind the TC.  These z-positions match the realistic compact assembly:
-//   z=-122  primary M22 stub
-//   z=-135  FWD clutch (piston end, drum extends to ~-160)
-//   z=-155  Planetary (sits between the clutches in real designs)
-//   z=-180  REV clutch (piston end, drum extends to ~-205)
-//   z=-240  TC (depth 60, spans ~-270 to -210)
-fwdClutchKit.group.position.set(PRIMARY_X, 0, -135);
-revClutchKit.group.position.set(PRIMARY_X, 0, -180);
+// AUDIT FIX F1/F5 — the real DNR module nests as ONE packed assembly between
+// the engine coupling and the primary's engine-side piston cylinder (which now
+// spans z≈-34..-72 after the F8 mirror), with no air gaps and everything
+// inside the bell mouth (flange face z≈-223):
+//   z=-96   FWD clutch (piston end, drum extends to ~-121) — nearest the pulley
+//   z=-135  Planetary (enlarged, spans ~-121..-149)
+//   z=-152  REV brake (case-grounded, plates extend to ~-177)
+//   z=-194  Damper (VT2, spans -180..-208, INSIDE the bell) / TC further out
+fwdClutchKit.group.position.set(PRIMARY_X, 0, -96);
+revClutchKit.group.position.set(PRIMARY_X, 0, -152);
 
 scene.add(fwdClutchKit.group);
 scene.add(revClutchKit.group);
+
+// Case web grounding the REV brake (audit F2): a static annular rib with
+// outer spline tabs — the visual anchor telling the viewer these steel
+// plates are splined INTO the housing, not spinning.  Child of the brake
+// group so the explode view carries it along.
+{
+  const webShape = new THREE.Shape();
+  webShape.absarc(0, 0, 80, 0, Math.PI * 2, false);
+  const webHole = new THREE.Path();
+  webHole.absarc(0, 0, 71, 0, Math.PI * 2, true);
+  webShape.holes.push(webHole);
+  const webGeom = new THREE.ExtrudeGeometry(webShape, { depth: 8, bevelEnabled: false, curveSegments: 48 });
+  webGeom.rotateX(-Math.PI/2);
+  webGeom.translate(0, 8, 0);            // over the plate-stack zone (local +Y)
+  const web = new THREE.Mesh(webGeom, matAlloy);
+  revClutchKit.group.add(web);
+  revClutchKit.group.add(new THREE.LineSegments(new THREE.EdgesGeometry(webGeom, 20), matEdge));
+  for (let i = 0; i < 12; i++){
+    const a = (i / 12) * Math.PI * 2;
+    const tg = new THREE.BoxGeometry(4, 14, 6);
+    const t = new THREE.Mesh(tg, matAlloy);
+    t.position.set(Math.cos(a) * 70.5, 12, Math.sin(a) * 70.5);
+    t.lookAt(0, t.position.y, 0);
+    revClutchKit.group.add(t);
+  }
+}
 
 /* ============================================================
    PHASE 3.2 — Planetary gear set (reverse path)
@@ -1212,7 +1252,7 @@ scene.add(revClutchKit.group);
 ============================================================ */
 const planetaryKit = buildPlanetary({ name: 'planetary', edgeMat: matEdge });
 planetaryKit.group.rotation.x = -Math.PI/2;       // align local +Y with world -Z
-planetaryKit.group.position.set(PRIMARY_X, 0, -155);   // packed between FWD and REV (was -185)
+planetaryKit.group.position.set(PRIMARY_X, 0, -135);   // packed between FWD clutch and REV brake (F1 repack)
 scene.add(planetaryKit.group);
 
 /* ============================================================
@@ -1225,7 +1265,9 @@ scene.add(planetaryKit.group);
 const pumpKit = buildOilPump({ name: 'pump', edgeMat: matEdge });
 // Local +Y axis (pump cover face) should point AWAY from primary (in +Z world)
 pumpKit.group.rotation.x = Math.PI/2;             // local +Y → world +Z
-pumpKit.group.position.set(PRIMARY_X, 0, 74);          // ~5 mm above the actual cup crown (top at z≈69, snap-ring at z≈66.5)
+// F8/F9: stacks on the cover-end hardware — bearing (z≈51-65) → nut (66-75)
+// → Belleville (76-80) → pump cartridge (82+), as in the service manual.
+pumpKit.group.position.set(PRIMARY_X, 0, 82);
 scene.add(pumpKit.group);
 
 /* ============================================================
@@ -1255,18 +1297,20 @@ scene.add(valveBodyKit.group);
     transparent: true, opacity: 0.85,
     emissive: 0x081116, emissiveIntensity: 0.35,
   });
-  // Input shaft from the CVT-side FACE of the engine coupling to the primary
-  // M22 stub.  The coupling group is centred at z=-225 (damper) or z=-240 (TC);
-  // we need the face nearest the CVT, not the centre, so the shaft doesn't
-  // sink into the coupling.
-  //   VT2 damper: centre z=-225, depth=24 → CVT-face at z=-213
-  //   VT3 TC    : centre z=-240, depth=60 → CVT-face at z=-210
-  const damperEndZ = (window.__BYKI_VARIANT === 'VT3') ? -210 : -213;
-  const shaftLen = -122 - damperEndZ;
-  const shaftGeom = new THREE.CylinderGeometry(11, 11, shaftLen, 24, 1, false);
+  // AUDIT FIX F3/F5 — this rod is now the PUMP DRIVE QUILL SHAFT: in the real
+  // VT2 a long thin shaft runs from the engine coupling straight through the
+  // hollow primary shaft to drive the oil pump at ENGINE speed (that's why
+  // pressure exists in Neutral, and why flat-towing is banned).  It replaces
+  // the old fat exposed "input shaft" rod (F5).  Ø16, tip hidden in the pump.
+  //   VT2 damper: centre z=-194, depth=28 → CVT-face at z=-180
+  //   VT3 TC    : centre z=-200, depth=60 → CVT-face at z=-170
+  const damperEndZ = (window.__BYKI_VARIANT === 'VT3') ? -174 : -180;
+  const quillEndZ = 90;            // inside the pump cartridge (z 82..100)
+  const shaftLen = quillEndZ - damperEndZ;
+  const shaftGeom = new THREE.CylinderGeometry(8, 8, shaftLen, 20, 1, false);
   shaftGeom.rotateX(Math.PI/2);   // align with world Z axis
   const inputShaft = new THREE.Mesh(shaftGeom, inputShaftMat);
-  inputShaft.position.set(PRIMARY_X, 0, (damperEndZ + (-122)) / 2);
+  inputShaft.position.set(PRIMARY_X, 0, (damperEndZ + quillEndZ) / 2);
   scene.add(inputShaft);
   // Edge overlay
   const shaftEdge = new THREE.LineSegments(
@@ -1294,11 +1338,13 @@ const VARIANT = (window.__BYKI_VARIANT === 'VT3') ? 'VT3' : 'VT2';
 // VT3 (Proton Preve Turbo / ProTronic) uses a full torque converter.
 const tcKit = (VARIANT === 'VT3')
   ? buildTorqueConverter({ name: 'tc',    edgeMat: matEdge })   // VT3 — full TC
-  : buildDamper          ({ name: 'damper', edgeMat: matEdge });// VT2 — torsional damper
+  : buildDamper          ({ name: 'damper', edgeMat: matEdge,
+      outerR: 92, springR: 66 });   // VT2 — torsional damper (re-check: real flexplate damper is ~Ø185-200 class)
 tcKit.group.rotation.x = -Math.PI/2;           // local +Y → world -Z
-// VT2: damper sits closer to rev clutch (smaller axial extent).
-// VT3: TC sits a bit further out (depth 60 vs 28).
-tcKit.group.position.set(PRIMARY_X, 0, (VARIANT === 'VT3') ? -240 : -225);
+// AUDIT FIX F1: the coupling lives INSIDE the bell housing (flange face
+// z≈-223), nested against the REV brake — no air gap, no overhang.
+// VT2 damper centre -194 (spans -180..-208); VT3 TC centre -206 (deeper).
+tcKit.group.position.set(PRIMARY_X, 0, (VARIANT === 'VT3') ? -206 : -194);
 scene.add(tcKit.group);
 
 /* ============================================================
@@ -1307,19 +1353,13 @@ scene.add(tcKit.group);
    Visually completes the CVT unit (otherwise the secondary just ends
    in a floating output spline).
 ============================================================ */
-// Tighter, more realistic proportions — Punch VT2 final drive sits compactly
-// under the secondary, NOT off behind it.  Smaller reduction gear (Ø70 vs Ø100)
-// and shorter centre distance bring the differential right under the unit.
+// AUDIT FIX F13/F14 — real two-stage final drive: secondary output gear →
+// intermediate "pinion shaft" → crown wheel on the differential (own axis,
+// axles coaxial through the case seals).  Geometry nets ≈5.2:1; the axle
+// rate itself uses the measured 5.182 (authoritative).
 const outputKit = buildOutputDrivetrain({
   name: 'output', edgeMat: matEdge,
-  pinionR: 13, pinionTeeth: 22,                  // Ø26 input pinion (on secondary output)
-  reductionR: 35, reductionTeeth: 56,            // Ø70 reduction gear (was Ø100)
-  centreDist: 48,                                // pinion → reduction
-  diffR: 30, diffH: 38,                          // tighter differential housing
-  axleR: 7, axleL: 26,                           // Ø14 stubs, shorter
-  gearW: 14,
-  finalDrive: 5.182,                             // Preve VT2 measured final drive — diff/axles
-                                                 // spin at N_sec / 5.182 (true wheel rate)
+  finalDrive: 5.182,                             // Preve VT2 measured final drive
 });
 // CRITICAL ORIENTATION: the pinion is driven by the secondary, so it MUST
 // spin about the same world axis as the secondary shaft (world Z).  The kit
@@ -1341,25 +1381,73 @@ outputKit.group.position.set(SECONDARY_X, 0, -95);
 scene.add(outputKit.group);
 
 /* ============================================================
-   PARK PAWL (Phase 2) — engages the output reduction gear in P, locking the
-   driveline.  NOTE: the Punch service manual documents Shift-Lock/Start-Lock
-   but NOT a pawl mechanism, so this is a clearly-labelled REPRESENTATION of the
-   standard transaxle park lock.  Reduction gear sits at world (126, 0, -95), R≈36.
+   PARK LOCK (audit F15) — the real VT2 has a mechanical park lock (Punch
+   working principle: "a mechanical lock prevents movement in P").  The
+   coarse-toothed PARK GEAR sits on the SECONDARY shaft's engine-side end
+   beside the hydraulic-unit cavity (service-manual photo inference), and
+   the spring-loaded pawl + park rod are actuated from the selector at the
+   valve body — not a floating arm from above.
 ============================================================ */
+// Park gear — child of SEC_PULLEY so it spins with the secondary shaft.
+{
+  const pg = new THREE.Group(); pg.name = 'park-gear';
+  const ringPts = [[16,-69],[30,-69],[30,-60],[16,-60],[16,-69]];
+  const rg = lathe(ringPts, 64); rg.computeVertexNormals();
+  pg.add(makePart(rg, matSteel, 18));
+  for (let i = 0; i < 12; i++){
+    const a = (i/12) * Math.PI * 2;
+    const tg = new THREE.BoxGeometry(8, 9, 8);
+    const t = new THREE.Mesh(tg, matSteel);
+    t.position.set(Math.cos(a)*33.5, -64.5, Math.sin(a)*33.5);
+    t.lookAt(0, t.position.y, 0);
+    pg.add(t);
+  }
+  SEC_PULLEY.add(pg);
+}
 const parkPawl = (() => {
   const grp = new THREE.Group(); grp.name = 'park-pawl';
+  // Pivot on the case web, below-right of the park gear; the pawl bites
+  // UP into the gear (real pawls engage from the valve-body side).
   const pivot = new THREE.Group();
-  const arm = makePart(new THREE.BoxGeometry(3.5, 16, 3.5), matSteel, 14);
-  arm.position.y = -8; pivot.add(arm);
-  const tooth = makePart(new THREE.BoxGeometry(5.5, 6, 6.5), matSteel, 14);
-  tooth.position.y = -17; pivot.add(tooth);          // tip reaches the gear teeth (R≈37) when engaged
+  const arm = makePart(new THREE.BoxGeometry(4, 26, 5), matSteel, 14);
+  arm.position.y = 13; pivot.add(arm);
+  const tooth = makePart(new THREE.BoxGeometry(7, 7, 7), matSteel, 14);
+  tooth.position.y = 27; pivot.add(tooth);
+  // pivot pin boss
+  const pinGeom = new THREE.CylinderGeometry(3.4, 3.4, 10, 12);
+  pinGeom.rotateX(Math.PI/2);
+  pivot.add(new THREE.Mesh(pinGeom, matSteel));
   grp.add(pivot);
-  grp.position.set(126, 54, -95);                    // pivot above the reduction gear
+  grp.rotation.z = 0.55;                              // lean the arm toward the gear
+  grp.position.set(SECONDARY_X + 40, -46, -64.5);     // beside the VB cavity
   scene.add(grp);
+  // Park rod — runs from the pawl toward the selector / rooster-cam at the
+  // valve body (static hint of the real actuation).
+  {
+    const rodMat = matSteel;
+    const seg = (x1,y1,z1, x2,y2,z2, r=2) => {
+      const dx=x2-x1, dy=y2-y1, dz=z2-z1;
+      const len = Math.hypot(dx,dy,dz);
+      const g = new THREE.CylinderGeometry(r, r, len, 10);
+      const m = new THREE.Mesh(g, rodMat);
+      m.position.set((x1+x2)/2, (y1+y2)/2, (z1+z2)/2);
+      m.lookAt(x2,y2,z2); m.rotateX(Math.PI/2);
+      scene.add(m);
+      return m;
+    };
+    seg(SECONDARY_X + 44, -52, -64.5,  SECONDARY_X - 20, -96, -40);
+    seg(SECONDARY_X - 20, -96, -40,    10, -106, -14);
+    // return-spring collar on the first rod section
+    const spg = new THREE.CylinderGeometry(4.5, 4.5, 12, 10);
+    const sp = new THREE.Mesh(spg, rodMat);
+    sp.position.set(SECONDARY_X + 20, -68, -55);
+    sp.lookAt(10, -106, -14); sp.rotateX(Math.PI/2);
+    scene.add(sp);
+  }
   let _eng = 0;
   grp.setEngaged = (on, dt = 0.016) => {
     _eng += ((on ? 1 : 0) - _eng) * Math.min(1, dt * 8);
-    pivot.rotation.z = -0.6 * (1 - _eng);            // 0 = tooth dropped INTO the gear, -0.6 = swung clear
+    pivot.rotation.z = -0.45 * (1 - _eng);           // 0 = tooth in the gear, -0.45 = swung clear
   };
   grp.setEngaged(false, 1);                          // start retracted
   return grp;
@@ -1517,7 +1605,7 @@ const caseHousing = (() => {
   {
     // Rounded-rect sump cross-section in X-Y, extruded along Z.
     const panShape = new THREE.Shape();
-    const pz0 = -70, pz1 = 95;   // pan z footprint
+    const pz0 = -50, pz1 = 95;   // pan z footprint (starts clear of the diff pod)
     const w = 150, hTop = -112, hBot = -150, rr = 14;
     panShape.moveTo(-w/2 + rr, hTop);
     panShape.lineTo( w/2 - rr, hTop);
@@ -1528,17 +1616,148 @@ const caseHousing = (() => {
     panShape.quadraticCurveTo(-w/2, hBot, -w/2, hBot + rr);
     panShape.lineTo(-w/2, hTop - rr);
     panShape.quadraticCurveTo(-w/2, hTop, -w/2 + rr, hTop);
+    // AUDIT FIX F17: the real pan is a separate STAMPED-STEEL dish (13 M6
+    // bolts + gasket), not part of the translucent casting — own material.
+    const matPan = new THREE.MeshPhysicalMaterial({
+      color: 0x1d2126, metalness: 0.72, roughness: 0.5,
+      transparent: true, opacity: 0.55, side: THREE.DoubleSide,
+      depthWrite: false, clippingPlanes: [], clipShadows: true,
+    });
+    allClippableMats.push(matPan);
     const panGeom = new THREE.ExtrudeGeometry(panShape, { depth: pz1 - pz0, bevelEnabled: false, curveSegments: 16 });
     panGeom.translate(0, 0, pz0);
-    const pan = new THREE.Mesh(panGeom, matCase);
+    const pan = new THREE.Mesh(panGeom, matPan);
     pan.renderOrder = 5;
     grp.add(pan);
     grp.add(new THREE.LineSegments(new THREE.EdgesGeometry(panGeom, 24), matCaseEdge));
+    // 13 flange bolts around the pan rim (service manual §2.6.2.9)
+    {
+      const pb = new THREE.CylinderGeometry(2.6, 2.6, 4, 6);
+      const midZ = (pz0 + pz1) / 2;
+      const spots = [];
+      for (const x of [-58, -29, 0, 29, 58]) spots.push([x, pz0 + 5]);
+      for (const x of [-58, -29, 0, 29, 58]) spots.push([x, pz1 - 5]);
+      spots.push([-71, midZ], [71, midZ], [-71, midZ + 45]);
+      for (const [x, z] of spots){
+        const b = new THREE.Mesh(pb, matSteel);
+        b.position.set(x, hTop + 1.5, z);
+        grp.add(b);
+      }
+    }
 
     // drain plug nub at the lowest point
     const plugGeom = new THREE.CylinderGeometry(6, 6, 8, 16);
     plugGeom.translate(40, -152, pz0 + (pz1 - pz0) * 0.5);
     grp.add(new THREE.Mesh(plugGeom, matSteel));
+  }
+
+  // ---- DIFFERENTIAL POD (audit F19/F14): the housing bulge that wraps the
+  //      crown wheel + differential on their own axis, with axle bores at
+  //      both faces (the differential oil seals live here).
+  {
+    const podGeom = new THREE.CylinderGeometry(60, 63, 82, 40, 1, false);
+    podGeom.rotateX(Math.PI/2);                 // axis along world Z
+    podGeom.translate(36, -87, -94);            // diff axis; spans z ≈ -135..-53
+    const pod = new THREE.Mesh(podGeom, matCase);
+    pod.renderOrder = 5;
+    grp.add(pod);
+    grp.add(new THREE.LineSegments(new THREE.EdgesGeometry(podGeom, 26), matCaseEdge));
+    // axle bore rings (seal seats) on both pod faces
+    const boreGeom = new THREE.TorusGeometry(13, 2.4, 8, 32);
+    const boreA = new THREE.Mesh(boreGeom, matCase);
+    boreA.position.set(36, -87, -135); grp.add(boreA);
+    const boreB = new THREE.Mesh(boreGeom.clone(), matCase);
+    boreB.position.set(36, -87, -53);  grp.add(boreB);
+    // diff-cover bolt ring on the bell-side face
+    const podBolt = new THREE.CylinderGeometry(3.4, 3.4, 4, 6);
+    for (let i = 0; i < 6; i++){
+      const a = (i/6) * Math.PI * 2 + Math.PI/6;
+      const b = new THREE.Mesh(podBolt, matSteel);
+      b.rotation.x = Math.PI/2;
+      b.position.set(36 + Math.cos(a)*44, -87 + Math.sin(a)*44, -136);
+      grp.add(b);
+    }
+  }
+
+  // ---- CASE-MOUNTED SERVICE ITEMS (accuracy re-check additions) ----
+  // Every externally-visible part the service manual lists for the housing:
+  // breather pipe + cap (items 7/8), oil filler + level plugs (§2.1/2.2),
+  // oil-cooler connections (working principle: on the front of the casing),
+  // 16-pin main connector (item 45), selector shaft + shift lever (item 47),
+  // primary + output speed sensors (items 25/27, §2.6.2.13-14), oil filter +
+  // magnet (items 33/34) and the input-shaft seal (item 2).
+  {
+    const matExt = new THREE.MeshPhysicalMaterial({
+      color: 0x14171b, metalness: 0.25, roughness: 0.7,
+      transparent: true, opacity: 0.95, clippingPlanes: [], clipShadows: true,
+    });
+    allClippableMats.push(matExt);
+    const cyl = (r, h, mat, seg = 14) => new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, seg), mat);
+
+    // Breather pipe (bent tube on the crown) + cream cap
+    {
+      const p1 = cyl(2.6, 22, matSteel); p1.position.set(-50, 103, -40); grp.add(p1);
+      const p2 = cyl(2.6, 26, matSteel); p2.rotation.x = Math.PI/2 - 0.35;
+      p2.position.set(-50, 116, -52); grp.add(p2);
+      const cap = cyl(4.6, 9, matExt); cap.position.set(-50, 118.5, -65);
+      cap.rotation.x = Math.PI/2 - 0.35; grp.add(cap);
+    }
+    // Oil filler plug (top) + oil level plug (low on the +X flank)
+    {
+      const fill = cyl(7, 7, matSteel, 6); fill.position.set(55, 93, 30); grp.add(fill);
+      const lvl = cyl(6, 7, matSteel, 6); lvl.rotation.z = Math.PI/2;
+      lvl.position.set(167, -25, 40); grp.add(lvl);
+    }
+    // Oil-cooler connections — two bosses on the front (bell-side) face
+    for (const [cx, cy] of [[-115, 58], [-88, 67]]){
+      const boss = cyl(6.5, 10, matCase, 12); boss.rotation.x = Math.PI/2;
+      boss.position.set(cx, cy, -138); grp.add(boss);
+      const hex = cyl(4.6, 5, matSteel, 6); hex.rotation.x = Math.PI/2;
+      hex.position.set(cx, cy, -144); grp.add(hex);
+    }
+    // Main 16-pin connector on the crown near the secondary
+    {
+      const body = cyl(15, 15, matExt, 20); body.position.set(95, 96, -100); grp.add(body);
+      const pins = cyl(11, 4, matSteel, 16); pins.position.set(95, 105, -100); grp.add(pins);
+      const clip = new THREE.Mesh(new THREE.BoxGeometry(34, 3, 6), matSteel);
+      clip.position.set(95, 90, -100); grp.add(clip);
+    }
+    // Selector shaft + shift lever (flat lever on top, near the valve-body side)
+    {
+      const shaft = cyl(4, 22, matSteel); shaft.position.set(12, 100, -25); grp.add(shaft);
+      const lever = new THREE.Mesh(new THREE.BoxGeometry(30, 3, 10), matSteel);
+      lever.position.set(24, 110, -25); grp.add(lever);
+      const nut = cyl(4.5, 5, matSteel, 6); nut.position.set(12, 113, -25); grp.add(nut);
+    }
+    // Primary speed sensor — through the end-cover face beside the pump,
+    // probe reaching the N_in target ring (audit F9 companion)
+    {
+      const body = cyl(4.5, 22, matExt); body.rotation.x = Math.PI/2;
+      body.position.set(-90.4, -37.8, 89); grp.add(body);
+      const stem = cyl(2, 30, matSteel); stem.rotation.x = Math.PI/2;
+      stem.position.set(-90.4, -37.8, 63); grp.add(stem);
+    }
+    // Output speed sensor + bracket — inside the pan cavity, nose at the
+    // park gear on the secondary shaft (service manual Fig 13-2)
+    {
+      const body = cyl(4.5, 18, matExt); body.rotation.z = Math.PI/2;
+      body.position.set(35, -26.5, -64.5); grp.add(body);
+      const bracket = new THREE.Mesh(new THREE.BoxGeometry(3, 26, 12), matSteel);
+      bracket.position.set(25, -40, -64.5); grp.add(bracket);
+    }
+    // Oil filter (plate + suction snout) under the valve body + pan magnet
+    {
+      const plate = new THREE.Mesh(new THREE.BoxGeometry(95, 7, 55), matExt);
+      plate.position.set(0, -136.5, 0); grp.add(plate);
+      const snout = cyl(5.5, 8, matExt); snout.position.set(-20, -130, -8); grp.add(snout);
+      const mag = new THREE.Mesh(new THREE.TorusGeometry(11, 2.6, 8, 24), matSteel);
+      mag.rotation.x = Math.PI/2; mag.position.set(30, -147, 40); grp.add(mag);
+    }
+    // Input-shaft oil seal at the bell mouth
+    {
+      const seal = new THREE.Mesh(new THREE.TorusGeometry(24, 2.6, 8, 40), matExt);
+      seal.position.set(PRIMARY_X, 0, -216); grp.add(seal);
+    }
   }
 
   // ---- CASTING DETAIL: bolt bosses, flange bolts, ribs, stamped marking ----
@@ -1626,14 +1845,16 @@ const D = {
   sheaveAngle: 11 * Math.PI/180,
   fixedHubH: 28,
   movHubH: 26,
-  cupOR: 77, cupIR: 66,            // piston cup wider than the sheaves (Ø154 vs Ø150), 11mm wall
+  cupOR: 82, cupIR: 70,            // piston cylinder Ø164 (re-check: real drum runs close to the Ø177.5 case opening)
   cupH: 38,                        // cup overall height
   reluctorTeeth: 32,
   reluctorDepth: 4, reluctorWidth: 6.5, reluctorH: 14,
   splineHubOR: 17, splineHubIR: 12,
   splineCount: 36,
-  beltMinR: 28, beltMaxR: 55,
-  beltW: 24, beltH: 9,
+  // AUDIT FIX F11 — real running-radius travel (VDT 04CVT-39 / Punch: the
+  // belt sweeps ~30→72.5 mm on the primary, nearly shaft-to-rim).
+  beltMinR: 30, beltMaxR: 72.5,
+  beltW: 24, beltH: 12,
   shaftTopY: 95,                   // top of upper threaded stub
   shaftBotY: -110,                 // bottom of lower threaded stub
 };
@@ -1783,27 +2004,28 @@ const movAssembly = new THREE.Group();  // moves as a unit (sheave + cup + reluc
   movAssembly.add(part);
 }
 
-/* ---------- PISTON CUP  (sits on back of moveable sheave) ---------- */
+/* ---------- PISTON CYLINDER  (on back of moveable sheave) ----------
+   AUDIT FIX F9: the real VT2 primary cylinder is a smooth deep-drawn
+   drum, closed at its outer end — no castellated "drive-lug gates"
+   (those were invented; the pump is driven by a quill shaft, not the
+   cup), no stepped crown, nothing visible inside. */
 const pistonCup = new THREE.Group();
 {
   const baseY = D.movHubH + 8;
   const topY  = baseY + D.cupH;
   const outerR = D.cupOR;
   const innerR = D.cupIR;
-  // STEPPED PROFILE — lower wider section (70% of height) + narrower upper rim
-  const stepY = baseY + 27;
-  const upperR = outerR - 6;
+  // Smooth drum: straight wall, soft shoulder, closed end down to the hub bore.
   const pts = [
     [innerR-1, baseY],
     [outerR,   baseY],
-    [outerR,   stepY],
-    [upperR,   stepY + 1.5],
-    [upperR,   topY-3],
-    [upperR-2, topY-1],
-    [upperR-2, topY],
-    [innerR+8, topY],
-    [innerR+8, topY-3],
-    [innerR-1, topY-3],
+    [outerR,   topY - 7],
+    [outerR-2.5, topY - 2.5],
+    [outerR-7, topY],
+    [26,       topY],
+    [20,       topY - 1.5],
+    [20,       topY - 5],
+    [innerR-1, topY - 9],
     [innerR-1, baseY],
   ];
   const g = lathe(pts, 128);
@@ -1811,40 +2033,6 @@ const pistonCup = new THREE.Group();
   const part = makePart(g, matAlloy, 14);
   part.name = 'piston-cup';
   pistonCup.add(part);
-
-  // ---- 6 DRIVE-LUG GATES — curved arc-segment walls rising from cup top.
-  //      Each gate spans 42° with 18° gaps. Serves as N_in speed-sensor target.
-  const arcDeg = 42;
-  const arcRad = arcDeg * Math.PI / 180;
-  const gateInnerR = innerR;
-  const gateOuterR = upperR;
-  const gateH = 14;
-  const gateShape = new THREE.Shape();
-  const segs = 10;
-  gateShape.moveTo(Math.cos(-arcRad/2)*gateOuterR, Math.sin(-arcRad/2)*gateOuterR);
-  for (let i = 1; i <= segs; i++){
-    const a = -arcRad/2 + (i/segs)*arcRad;
-    gateShape.lineTo(Math.cos(a)*gateOuterR, Math.sin(a)*gateOuterR);
-  }
-  gateShape.lineTo(Math.cos(arcRad/2)*gateInnerR, Math.sin(arcRad/2)*gateInnerR);
-  for (let i = 1; i <= segs; i++){
-    const a = arcRad/2 - (i/segs)*arcRad;
-    gateShape.lineTo(Math.cos(a)*gateInnerR, Math.sin(a)*gateInnerR);
-  }
-  const gateGeom = new THREE.ExtrudeGeometry(gateShape, {
-    depth: gateH, bevelEnabled: false
-  });
-  gateGeom.rotateX(-Math.PI/2);
-  gateGeom.translate(0, topY, 0);
-  for (let i = 0; i < 6; i++){
-    const angle = i * Math.PI / 3;
-    const m = new THREE.Mesh(gateGeom, matAlloy);
-    m.rotation.y = angle;
-    pistonCup.add(m);
-    const eg = new THREE.LineSegments(new THREE.EdgesGeometry(gateGeom, 14), matEdge);
-    eg.rotation.y = angle;
-    pistonCup.add(eg);
-  }
 
   // ---- STAMP MARKING DECAL — laser-etched P/N + datamatrix on cup back wall
   const stampCanvas = document.createElement('canvas');
@@ -1873,6 +2061,7 @@ const pistonCup = new THREE.Group();
   const stampR = outerR + 0.4;
   stamp.position.set(Math.cos(stampA)*stampR, baseY + 14, Math.sin(stampA)*stampR);
   stamp.rotation.y = Math.PI/2 - stampA;
+  stamp.rotation.z = Math.PI;   // AUDIT FIX F8: movAssembly is mirrored to the engine side; re-upright the decal
   pistonCup.add(stamp);
 }
 movAssembly.add(pistonCup);
@@ -1948,86 +2137,79 @@ const bearings = new THREE.Group();
     b.position.set(Math.cos(a)*orb2, bearingY, Math.sin(a)*orb2);
     bearings.add(b);
   }
+  // Journal sleeve filling shaft→bearing bore (the real bearing seats on a
+  // machined journal, not on air).
+  const slPts = [[12.4, bearingY-7],[17.8, bearingY-7],[17.8, bearingY+7],[12.4, bearingY+7],[12.4, bearingY-7]];
+  const slG = lathe(slPts, 48); slG.computeVertexNormals();
+  bearings.add(new THREE.Mesh(slG, matSteel));
 }
-movAssembly.add(bearings);
+// AUDIT FIX F8/F9: the primary ball bearing lives in the CASE bore at the
+// COVER end of the shaft (under the pump) — not inside the piston cup.  It
+// stays on the fixed shaft, so it no longer rides the sliding sheave either.
+PULLEY.add(bearings);
 
-/* ---------- INTERNAL SPLINED DRIVE HUB  (centre of cup) ---------- */
+/* ---------- PRIMARY NUT + BELLEVILLE WASHER (cover end, under the pump) ----------
+   AUDIT FIX F9: behind the real primary cover sit the primary nut
+   (197.5 Nm) and a Belleville washer with its biggest diameter facing the
+   pump (service manual §2.6.2.6-7).  These replace the fictional exposed
+   "splined drive hub".  Variable name kept for the explode-view wiring. */
 const splineHub = new THREE.Group();
 {
-  const cupTopY = D.movHubH + 8 + D.cupH - 3;
-  const hubY0 = cupTopY - 22;
-  const hubY1 = cupTopY + 4;        // protrudes slightly above the cup top
-  const outerR = D.splineHubOR;
-  const innerR = D.splineHubIR;
-  const pts = [
-    [innerR, hubY0],
-    [outerR, hubY0],
-    [outerR, hubY1],
-    [innerR+1.5, hubY1],
-    [innerR, hubY1-2],
-    [innerR, hubY0],
-  ];
-  const g = lathe(pts, 72);
-  g.computeVertexNormals();
-  splineHub.add(makePart(g, matSteel, 14));
-
-  // internal spline teeth (visible from above)
-  const N = D.splineCount;
-  for (let i=0;i<N;i++){
-    const a = (i/N)*Math.PI*2;
-    const bg = new THREE.BoxGeometry(0.55, hubY1-hubY0-1, 0.85);
-    const m = new THREE.Mesh(bg, matSteel);
-    m.position.set(Math.cos(a)*(innerR+0.4), (hubY0+hubY1)/2, Math.sin(a)*(innerR+0.4));
-    m.lookAt(0, m.position.y, 0);
-    splineHub.add(m);
-  }
+  // Hex nut clamping the primary ball bearing on the shaft end.
+  const nutGeom = new THREE.CylinderGeometry(15, 15, 9, 6);
+  nutGeom.translate(0, 70.5, 0);
+  splineHub.add(makePart(nutGeom, matSteel, 10));
+  // Washer collar between bearing and nut.
+  const collarPts = [[13, 64.8],[19, 64.8],[19, 66.2],[13, 66.2],[13, 64.8]];
+  const cg = lathe(collarPts, 48); cg.computeVertexNormals();
+  splineHub.add(new THREE.Mesh(cg, matSteel));
+  // Belleville washer — shallow cone ring, big diameter toward the pump (+Y).
+  const bellPts = [[10, 76],[20, 78.6],[20, 79.7],[10, 77.1],[10, 76]];
+  const bg = lathe(bellPts, 64); bg.computeVertexNormals();
+  splineHub.add(makePart(bg, matSteel, 20));
 }
-movAssembly.add(splineHub);
+PULLEY.add(splineHub);
+
+/* ---------- N_in SPEED-SENSOR TARGET RING (fixed-sheave back, cover side) ----------
+   AUDIT FIX F9: replaces the invented cup "lug gates" as the primary-speed
+   target — the real sensor sits behind the primary cover next to the pump
+   (service manual §2.6.2.14) reading a toothed ring on the rotating pack. */
+{
+  const relRing = new THREE.Group();
+  const rr = 38;
+  const ringPts = [[rr-3, 44],[rr+1, 44],[rr+1, 47],[rr-3, 47],[rr-3, 44]];
+  const rg = lathe(ringPts, 96); rg.computeVertexNormals();
+  relRing.add(new THREE.Mesh(rg, matSteel));
+  for (let i = 0; i < D.reluctorTeeth; i++){
+    const a = (i / D.reluctorTeeth) * Math.PI * 2;
+    const tg = new THREE.BoxGeometry(D.reluctorDepth, 3, D.reluctorWidth * 0.55);
+    const t = new THREE.Mesh(tg, matSteel);
+    t.position.set(Math.cos(a)*(rr+2.4), 45.5, Math.sin(a)*(rr+2.4));
+    t.lookAt(0, t.position.y, 0);
+    relRing.add(t);
+  }
+  PULLEY.add(relRing);
+}
+
+/* AUDIT FIX F8 (the "terbalik" pulley): the official Punch cross-section
+   puts the PRIMARY moving half + piston cylinder on the ENGINE side, with
+   the fixed half integral with the shaft running to the cover end (bearing,
+   nut, pump behind the Ø177 cover).  Mirror both halves about the belt
+   plane — the parts are axisymmetric, so a π turn about local Z is an
+   exact mirror.  Spin still applies at PULLEY group level, unaffected. */
+fixedSheave.rotation.z = Math.PI;   // fixed half → cover side (+Y local)
+movAssembly.rotation.z = Math.PI;   // moving half + cylinder → engine side (−Y local)
 
 PULLEY.add(movAssembly);
 
-/* ---------- STEEL PUSH-BELT  (Van Doorne)  ~88 visual segments ---------- */
+/* ---------- STEEL PUSH-BELT ----------
+   AUDIT FIX F6: the belt is no longer two closed rings (one per pulley) —
+   a real belt is ONE loop: two arcs of contact + two straight runs.  The
+   entire loop now lives in the unified `beltLink` system further down.
+   `belt` remains as an empty compat group (spin/slip writers touch it). */
 const belt = new THREE.Group();
 let beltMesh;
-{
-  const segCount = 88;
-  // segment cross-section: trapezoid 24mm wide top × narrower bottom × 9 tall
-  // We render the *band-pack* as a torus, then add stamped V-segments around it.
-  const Rp = D.beltMinR;
-  const halfAng = D.sheaveAngle;
-  const beltW = D.beltW, beltH = D.beltH;
-  const topHalfW = beltW/2;
-  const botHalfW = beltW/2 - Math.tan(halfAng)*beltH;
-  // band-pack torus (top of belt, the two stacked steel bands)
-  const tubeR = 1.4;
-  const torus = new THREE.TorusGeometry(Rp, tubeR, 8, 96).rotateX(Math.PI/2);
-  torus.translate(0, beltH/2 - tubeR - 0.3, 0);
-  beltMesh = new THREE.Group();
-  beltMesh.add(new THREE.Mesh(torus, matBelt));
-  beltMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(torus,20), matEdge));
-
-  // segment shape (trapezoidal)
-  const segShape = new THREE.Shape();
-  segShape.moveTo(-topHalfW, beltH/2);
-  segShape.lineTo( topHalfW, beltH/2);
-  segShape.lineTo( botHalfW,-beltH/2);
-  segShape.lineTo(-botHalfW,-beltH/2);
-  segShape.lineTo(-topHalfW, beltH/2);
-  const segGeom = new THREE.ExtrudeGeometry(segShape, { depth: 1.6, bevelEnabled:false });
-  segGeom.translate(0, 0, -0.8);
-
-  for (let i=0;i<segCount;i++){
-    const a = (i/segCount)*Math.PI*2;
-    const m = new THREE.Mesh(segGeom, matBelt);
-    m.position.set(Math.cos(a)*Rp, 0, Math.sin(a)*Rp);
-    m.lookAt(0, 0, 0);
-    m.rotateY(Math.PI/2);
-    beltMesh.add(m);
-  }
-
-  belt.add(beltMesh);
-  belt.userData.baseRp = Rp;
-}
+belt.userData.baseRp = D.beltMinR;
 PULLEY.add(belt);
 
 /* ---------- SNAP RING + RETAINER hint on cup top ---------- */
@@ -2044,19 +2226,22 @@ PULLEY.add(belt);
 const D2 = {
   shaftOD: 12, sheaveOR: 75, sheaveAngle: 11 * Math.PI/180,
   fixedHubH: 26, movHubH: 24,
-  // SPRING DOME — corrected proportions matching standalone secondary.html
-  domeBaseR: 68,                // Ø136 main body (slightly narrower than Ø150 sheave)
-  domeStemR: 22,                // Ø44 bearing-housing neck
-  domeBaseH: 34,                // tall main body (where stamp lives)
-  domeShoulderH: 14,            // short conical taper
-  domeStemH: 22,                // bearing-housing cylindrical neck height
-  domeTopR: 9,                  // Ø18 splined tip
-  domeTopH: 38,                 // shaft top — gives splined-stub clearance above dome
+  // AUDIT FIX F10 — the real secondary cylinder is a FULL-DIAMETER pressed
+  // drum (no Ø44 neck), and the coil preload spring inside it is large:
+  // roughly half the bore across and nearly the chamber's depth (official
+  // cross-section).  The old stepped "dome + stem" proportions are gone.
+  domeBaseR: 72,                // Ø144 drum (just under the Ø150 sheave)
+  domeStemR: 16,                // small centre hub boss on the closed end
+  domeBaseH: 46,                // drum wall height
+  domeShoulderH: 8,             // shallow cap taper
+  domeStemH: 8,                 // hub boss height
+  domeTopR: 10,                 // cover-end bearing journal (under the case cap)
+  domeTopH: 14,                 // short journal — no more splined stub (F10)
   flangeR: 38, flangeH: 7,
   outSplineR: 12, outSplineH: 32, outSplineCount: 26,
-  topStubSplines: 18,
-  springWireR: 1.6, springR: 22, springTurns: 6, springLen: 24,
-  beltMinR: 28, beltMaxR: 55, beltW: 24, beltH: 9,
+  topStubSplines: 18,           // (unused since F10 — journal replaced the stub)
+  springWireR: 3.2, springR: 46, springTurns: 7, springLen: 42,
+  beltMinR: 30, beltMaxR: 72.5, beltW: 24, beltH: 12,   // F11 — real radius travel
   shaftTopY: 78, shaftBotY: -78,
 };
 const matSpring = new THREE.MeshPhysicalMaterial({
@@ -2070,12 +2255,11 @@ allClippableMats.push(matSpring);
   const r = D2.shaftOD;
   const outBot = D2.shaftBotY - D2.flangeH - D2.outSplineH;
   const pts = [
-    // Top stub with small chamfered/rounded edge at the top
+    // F10: plain bearing journal at the cover end (lives under the small
+    // 4-bolt case cap) — the old protruding splined stub never existed.
     [0,             D2.shaftTopY + D2.domeTopH],
-    [D2.domeTopR-2, D2.shaftTopY + D2.domeTopH],
-    [D2.domeTopR-1, D2.shaftTopY + D2.domeTopH - 1],
-    [D2.domeTopR-1, D2.shaftTopY + 4],
-    [D2.domeTopR,   D2.shaftTopY + 2],
+    [D2.domeTopR-1, D2.shaftTopY + D2.domeTopH],
+    [D2.domeTopR,   D2.shaftTopY + D2.domeTopH - 2],
     [D2.domeTopR,   D2.shaftTopY],
     [r, D2.shaftTopY - 4],
     [r, 40], [r+0.6, 40], [r+0.6, 25], [r, 25],
@@ -2102,15 +2286,8 @@ allClippableMats.push(matSpring);
     m.lookAt(0, m.position.y, 0);
     SEC_PULLEY.add(m);
   }
-  // top stub splines
-  for (let i=0;i<D2.topStubSplines;i++){
-    const a = (i/D2.topStubSplines)*Math.PI*2;
-    const bg = new THREE.BoxGeometry(0.45, D2.domeTopH-2, 0.7);
-    const m = new THREE.Mesh(bg, matSteel);
-    m.position.set(Math.cos(a)*(D2.domeTopR+0.2), D2.shaftTopY + D2.domeTopH/2, Math.sin(a)*(D2.domeTopR+0.2));
-    m.lookAt(0, m.position.y, 0);
-    SEC_PULLEY.add(m);
-  }
+  // (F10: no splined stub at the cover end — the journal above runs plain
+  //  into the bearing under the case's small secondary cover.)
   // output splines
   const outSplineMidY = D2.shaftBotY - D2.flangeH - D2.outSplineH/2;
   for (let i=0;i<D2.outSplineCount;i++){
@@ -2177,23 +2354,26 @@ const movAssembly2 = new THREE.Group();
 }
 const springDome2 = new THREE.Group();
 {
+  // F10: full-diameter pressed-steel drum with a shallow closed cap and a
+  // small centre hub — the shape the official cross-section actually draws.
   const baseY = D2.movHubH + 6;
-  const wideTopY = baseY + D2.domeBaseH;
-  const stemBotY = wideTopY + D2.domeShoulderH;
-  const stemTopY = stemBotY + D2.domeStemH;
+  const wallTopY = baseY + D2.domeBaseH;
+  const capTopY  = wallTopY + D2.domeShoulderH;
+  const hubTopY  = capTopY + D2.domeStemH;
   const pts = [
-    [D2.domeBaseR-6, baseY], [D2.domeBaseR, baseY],
-    [D2.domeBaseR, wideTopY], [D2.domeBaseR-4, wideTopY+3],
-    [D2.domeStemR+4, stemBotY-3], [D2.domeStemR, stemBotY],
-    [D2.domeStemR, stemTopY],
-    // FLAT HORIZONTAL TOP LEDGE (small outer chamfer, then flat to shaft hole)
-    [D2.domeStemR-1.5, stemTopY+1],
-    [D2.domeStemR-1.5, stemTopY+1.5],
-    [D2.domeStemR-5,   stemTopY+1.5],
-    [D2.domeStemR-5,   stemTopY-1],
-    // inner profile back down (hollow interior)
-    [D2.domeStemR-6, stemTopY-1], [D2.domeStemR-6, stemBotY-2],
-    [D2.domeBaseR-8, wideTopY-2], [D2.domeBaseR-6, baseY]
+    [D2.domeBaseR-8, baseY], [D2.domeBaseR, baseY],
+    [D2.domeBaseR, wallTopY],                       // straight drum wall
+    [D2.domeBaseR-5, wallTopY+4],
+    [D2.domeStemR+14, capTopY],                     // shallow cap taper
+    [D2.domeStemR, capTopY],
+    [D2.domeStemR, hubTopY],                        // centre hub boss
+    [D2.domeStemR-3, hubTopY+1],
+    [11, hubTopY+1],
+    [11, capTopY-2],
+    // inner shell back down (hollow interior for the big spring)
+    [D2.domeStemR-4, capTopY-3],
+    [D2.domeBaseR-8, wallTopY-3],
+    [D2.domeBaseR-8, baseY]
   ];
   const g = lathe(pts, 128); g.computeVertexNormals();
   springDome2.add(makePart(g, matAlloy, 14));
@@ -2270,114 +2450,154 @@ SEC_PULLEY.add(movAssembly2);
    That role is now filled by the outputKit pinion mounted on the secondary
    output axis (see the outputKit placement above).  Nothing is built here. */
 
-/* ---- SECONDARY belt (separate ring) ---- */
+/* ---- SECONDARY belt ring — REMOVED (audit F6) ----
+   The one-and-only belt loop is built by the unified system below.
+   Empty compat group kept for the spin/slip writers. */
 const belt2 = new THREE.Group();
-{
-  const segCount = 88;
-  const Rp = D2.beltMaxR;   // secondary starts at MAX radius (low gear)
-  const halfAng = D2.sheaveAngle;
-  const beltW = D2.beltW, beltH = D2.beltH;
-  const topHalfW = beltW/2;
-  const botHalfW = beltW/2 - Math.tan(halfAng)*beltH;
-  const tubeR = 1.4;
-  const torus = new THREE.TorusGeometry(Rp, tubeR, 8, 96).rotateX(Math.PI/2);
-  torus.translate(0, beltH/2 - tubeR - 0.3, 0);
-  const beltMesh2 = new THREE.Group();
-  beltMesh2.add(new THREE.Mesh(torus, matBelt));
-  beltMesh2.add(new THREE.LineSegments(new THREE.EdgesGeometry(torus,20), matEdge));
-  const shape = new THREE.Shape();
-  shape.moveTo(-topHalfW, beltH/2);
-  shape.lineTo( topHalfW, beltH/2);
-  shape.lineTo( botHalfW,-beltH/2);
-  shape.lineTo(-botHalfW,-beltH/2);
-  shape.lineTo(-topHalfW, beltH/2);
-  const segGeom = new THREE.ExtrudeGeometry(shape, { depth: 1.6, bevelEnabled:false });
-  segGeom.translate(0, 0, -0.8);
-  for (let i=0;i<segCount;i++){
-    const a = (i/segCount)*Math.PI*2;
-    const m = new THREE.Mesh(segGeom, matBelt);
-    m.position.set(Math.cos(a)*Rp, 0, Math.sin(a)*Rp);
-    m.lookAt(0,0,0); m.rotateY(Math.PI/2);
-    beltMesh2.add(m);
-  }
-  belt2.add(beltMesh2);
-  belt2.userData.baseRp = Rp;
-}
+belt2.userData.baseRp = D2.beltMaxR;
 SEC_PULLEY.add(belt2);
 
 /* ============================================================
-   BELT CONNECTING TANGENTS  (visual link between primary & secondary)
-   Two thin "ribbon" tubes — upper push-side, lower slack-side
+   UNIFIED PUSH-BELT LOOP  (audit F6 / F7 / F11)
+   ONE continuous belt — two arcs of contact + two straight tangent
+   runs — built to the real Bosch 901064/901100 construction:
+     · ≈400 steel elements, 1.8 mm thick, in continuous contact
+       (instanced — one draw call)
+     · TWO ring-pack bands riding in slots either side of the neck
+       (instanced link chains, so no per-frame geometry rebuilds)
+   The wrap angles, tangent lines and arc lengths all follow the live
+   running radii, so the loop stays geometrically true through the
+   whole ratio sweep.  Belt travel (conveyor flow + slip lag) is a
+   phase offset along the loop.
 ============================================================ */
 const beltLink = new THREE.Group();
 scene.add(beltLink);
 let _beltFlow = 0;   // accumulated belt travel (mm); advanced in applyLiveSpin
 
-// The two STRAIGHT RUNS of the push-belt between the pulleys.  Built ONCE as a
-// pool of trapezoidal elements (matching the wrapped-segment cross-section), then
-// just repositioned each frame as the tangent radii change with ratio.  The old
-// version rebuilt BoxGeometry + EdgesGeometry every frame (an allocation leak)
-// and showed only flat slabs.
-const BELTLINK_SEGS = 20;
-const _blSegGeom = (() => {
-  const beltW = D.beltW, beltH = D.beltH, halfAng = D.sheaveAngle;
-  const topHalfW = beltW/2, botHalfW = beltW/2 - Math.tan(halfAng)*beltH;
+const BELT = {
+  N: 400,                       // element count (Bosch: ~400-450)
+  T: 1.8,                       // element thickness (mm)
+  W: D.beltW, H: D.beltH,       // 24 wide × 12 tall stack
+  bandW: 7, bandT: 1.1,         // each ring pack: ~9×0.185mm bands ≈ 1.7mm... drawn 1.1 for read
+  BAND_N: 280,                  // links per band chain
+};
+const _beltElemGeom = (() => {
+  const halfAng = D.sheaveAngle;
+  const topHalfW = BELT.W/2, botHalfW = BELT.W/2 - Math.tan(halfAng)*BELT.H;
   const s = new THREE.Shape();
-  s.moveTo(-topHalfW, beltH/2); s.lineTo(topHalfW, beltH/2);
-  s.lineTo(botHalfW, -beltH/2); s.lineTo(-botHalfW, -beltH/2); s.lineTo(-topHalfW, beltH/2);
-  const g = new THREE.ExtrudeGeometry(s, { depth: 2.0, bevelEnabled: false });
-  g.translate(0, 0, -1.0);
+  s.moveTo(-topHalfW, BELT.H/2); s.lineTo(topHalfW, BELT.H/2);
+  s.lineTo(botHalfW, -BELT.H/2); s.lineTo(-botHalfW, -BELT.H/2); s.lineTo(-topHalfW, BELT.H/2);
+  const g = new THREE.ExtrudeGeometry(s, { depth: BELT.T, bevelEnabled: false });
+  g.translate(0, 0, -BELT.T/2);
   return g;
 })();
-// band-pack strip per run (the two steel bands) — a thin box scaled to run length,
-// with an edge overlay so the belt band reads continuously in WIREFRAME x-ray.
-const _blBandGeom = new THREE.BoxGeometry(D.beltW - 4, 1.0, 1);   // width(axial) × thickness × unit-length(travel, scaled per frame)
-const _blRuns = [+1, -1].map(sign => {
-  const meshes = [];
-  for (let i = 0; i < BELTLINK_SEGS; i++){
-    const m = new THREE.Mesh(_blSegGeom, matBelt);
-    beltLink.add(m); meshes.push(m);
-  }
-  const band = new THREE.Mesh(_blBandGeom, matBelt);
-  const bandEdge = new THREE.LineSegments(new THREE.EdgesGeometry(_blBandGeom, 20), matEdge);
-  beltLink.add(band); beltLink.add(bandEdge);
-  return { sign, meshes, band, bandEdge };
+const _beltElems = new THREE.InstancedMesh(_beltElemGeom, matBelt, BELT.N);
+const _bandGeom  = new THREE.BoxGeometry(BELT.bandW, BELT.bandT, 3.4);
+const _bandL = new THREE.InstancedMesh(_bandGeom, matBelt, BELT.BAND_N);
+const _bandR = new THREE.InstancedMesh(_bandGeom, matBelt, BELT.BAND_N);
+[_beltElems, _bandL, _bandR].forEach(im => {
+  im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  im.frustumCulled = false;               // instances spread far beyond the base geometry bounds
+  beltLink.add(im);
 });
-const _blAxial = new THREE.Vector3(0, 0, 1);
-const _blP = new THREE.Vector3(), _blS = new THREE.Vector3(), _blDir = new THREE.Vector3();
-const _blY = new THREE.Vector3(), _blX = new THREE.Vector3(), _blMtx = new THREE.Matrix4(), _blPos = new THREE.Vector3();
-function updateBeltLink(RpPri, RpSec){
-  const xP = PRIMARY_X, xS = SECONDARY_X;
-  for (const run of _blRuns){
-    const yP = run.sign * RpPri, yS = run.sign * RpSec;
-    _blP.set(xP, yP, 0); _blS.set(xS, yS, 0);
-    _blDir.copy(_blS).sub(_blP);
-    const len = _blDir.length();
-    _blDir.normalize();
-    // wide (outer) side of the trapezoid faces away from the belt centreline
-    _blY.copy(_blAxial).cross(_blDir);            // ≈ +Y for a +X run
-    if (run.sign < 0) _blY.negate();
-    _blY.normalize();
-    _blX.copy(_blY).cross(_blDir).normalize();
-    _blMtx.makeBasis(_blX, _blY, _blDir);
-    // Slide the elements along the run by the belt-travel phase so the belt
-    // FLOWS (conveyor) at the shared linear speed.  Top and bottom runs travel
-    // in opposite directions (run.sign), matching a real loop.
-    const n = run.meshes.length;
-    const spacing = len / n;
-    let shift = _beltFlow % spacing; if (shift < 0) shift += spacing;
-    for (let i = 0; i < n; i++){
-      let d = (i + 0.5) * spacing + run.sign * shift;
-      d = ((d % len) + len) % len;          // wrap into [0,len) → conveyor
-      const m = run.meshes[i];
-      m.position.copy(_blP).lerp(_blS, d / len);
-      m.setRotationFromMatrix(_blMtx);
-    }
-    // band strip: centre of run, scaled to its length, sitting on the outer edge
-    _blPos.copy(_blP).lerp(_blS, 0.5).addScaledVector(_blY, D.beltH/2 - 0.4);
-    run.band.position.copy(_blPos); run.band.setRotationFromMatrix(_blMtx); run.band.scale.set(1, 1, len);
-    run.bandEdge.position.copy(_blPos); run.bandEdge.setRotationFromMatrix(_blMtx); run.bandEdge.scale.set(1, 1, len);
+// Wireframe/x-ray guide — a line loop tracing the belt pitch path (Line
+// objects survive the x-ray mesh-hiding, like the old band edges did).
+const BELT_GUIDE_N = 140;
+const _guideGeom = new THREE.BufferGeometry();
+_guideGeom.setAttribute('position', new THREE.BufferAttribute(new Float32Array(BELT_GUIDE_N * 3), 3));
+const _beltGuide = new THREE.LineLoop(_guideGeom, matEdge);
+_beltGuide.frustumCulled = false;
+beltLink.add(_beltGuide);
+
+const _bmM = new THREE.Matrix4();
+const _bmX = new THREE.Vector3(), _bmY = new THREE.Vector3(), _bmZ = new THREE.Vector3(), _bmP = new THREE.Vector3();
+// Sample the loop at arclength s ∈ [0,L): fills nx,ny (outward normal) and px,py.
+// Loop runs CCW (matches positive pulley spin): primary arc → bottom run →
+// secondary arc → top run.
+function _beltSample(s, r1, r2, alpha, L1, Lt, L2, out){
+  const sinA = Math.sin(alpha), cosA = Math.cos(alpha);
+  if (s < L1){                                   // primary wrap arc
+    const phi = (Math.PI/2 + alpha) + (s / L1) * (Math.PI - 2*alpha);
+    out.nx = Math.cos(phi); out.ny = Math.sin(phi);
+    out.px = PRIMARY_X + r1 * out.nx; out.py = r1 * out.ny; out.r = r1;
+    return;
   }
+  s -= L1;
+  if (s < Lt){                                   // bottom tangent run (P → S)
+    const f = s / Lt;
+    out.nx = -sinA; out.ny = -cosA; out.r = 0;
+    const p1x = PRIMARY_X   + r1 * out.nx, p1y = r1 * out.ny;
+    const p2x = SECONDARY_X + r2 * out.nx, p2y = r2 * out.ny;
+    out.px = p1x + (p2x - p1x) * f; out.py = p1y + (p2y - p1y) * f;
+    return;
+  }
+  s -= Lt;
+  if (s < L2){                                   // secondary wrap arc
+    const phi = (-Math.PI/2 - alpha) + (s / L2) * (Math.PI + 2*alpha);
+    out.nx = Math.cos(phi); out.ny = Math.sin(phi);
+    out.px = SECONDARY_X + r2 * out.nx; out.py = r2 * out.ny; out.r = r2;
+    return;
+  }
+  s -= L2;                                       // top tangent run (S → P)
+  {
+    const f = Math.min(1, s / Lt);
+    out.nx = -sinA; out.ny = cosA; out.r = 0;
+    const p2x = SECONDARY_X + r2 * out.nx, p2y = r2 * out.ny;
+    const p1x = PRIMARY_X   + r1 * out.nx, p1y = r1 * out.ny;
+    out.px = p2x + (p1x - p2x) * f; out.py = p2y + (p1y - p2y) * f;
+  }
+}
+const _bs = { nx:0, ny:0, px:0, py:0, r:0 };
+function updateBeltLink(RpPri, RpSec){
+  const r1 = RpPri, r2 = RpSec;
+  const alpha = Math.asin(Math.max(-0.9, Math.min(0.9, (r2 - r1) / PULLEY_CENTRE_DIST)));
+  const Lt = Math.sqrt(Math.max(1, PULLEY_CENTRE_DIST*PULLEY_CENTRE_DIST - (r2 - r1)*(r2 - r1)));
+  const L1 = r1 * (Math.PI - 2*alpha);
+  const L2 = r2 * (Math.PI + 2*alpha);
+  const L  = L1 + L2 + 2*Lt;
+
+  let shift = _beltFlow % L; if (shift < 0) shift += L;
+
+  // -- elements --
+  const spacing = L / BELT.N;
+  for (let i = 0; i < BELT.N; i++){
+    const s = (i * spacing + shift) % L;
+    _beltSample(s, r1, r2, alpha, L1, Lt, L2, _bs);
+    _bmY.set(_bs.nx, _bs.ny, 0);                       // outward/radial
+    _bmX.set(0, 0, 1);                                 // axial
+    _bmZ.crossVectors(_bmX, _bmY);                     // travel (CCW tangent)
+    _bmM.makeBasis(_bmX, _bmY, _bmZ);
+    _bmM.setPosition(_bs.px, _bs.py, 0);
+    _beltElems.setMatrixAt(i, _bmM);
+  }
+  _beltElems.instanceMatrix.needsUpdate = true;
+
+  // -- ring-pack band chains (in the slots near the elements' outer edge) --
+  const bandRad = BELT.H/2 - 2.2;                      // radial offset from pitch line
+  const bandAx  = BELT.W/2 - BELT.bandW/2 - 1.2;       // axial offset each side
+  const bSpacing = L / BELT.BAND_N;
+  for (let i = 0; i < BELT.BAND_N; i++){
+    const s = (i * bSpacing + shift) % L;
+    _beltSample(s, r1, r2, alpha, L1, Lt, L2, _bs);
+    _bmY.set(_bs.nx, _bs.ny, 0);
+    _bmX.set(0, 0, 1);
+    _bmZ.crossVectors(_bmX, _bmY);
+    _bmM.makeBasis(_bmX, _bmY, _bmZ);
+    _bmM.setPosition(_bs.px + _bs.nx * bandRad, _bs.py + _bs.ny * bandRad, +bandAx);
+    _bandL.setMatrixAt(i, _bmM);
+    _bmM.setPosition(_bs.px + _bs.nx * bandRad, _bs.py + _bs.ny * bandRad, -bandAx);
+    _bandR.setMatrixAt(i, _bmM);
+  }
+  _bandL.instanceMatrix.needsUpdate = true;
+  _bandR.instanceMatrix.needsUpdate = true;
+
+  // -- x-ray guide loop --
+  const gp = _guideGeom.attributes.position;
+  for (let i = 0; i < BELT_GUIDE_N; i++){
+    _beltSample((i / BELT_GUIDE_N) * L, r1, r2, alpha, L1, Lt, L2, _bs);
+    gp.setXYZ(i, _bs.px, _bs.py, 0);
+  }
+  gp.needsUpdate = true;
 }
 updateBeltLink(D.beltMinR, D2.beltMaxR);
 
@@ -2804,10 +3024,11 @@ const VEH = {
 if (typeof window !== 'undefined' && window.__BYKI_VEH) Object.assign(VEH, window.__BYKI_VEH);
 let _V_mps = 0;            // vehicle speed integrator — SIGNED (negative = reverse)
 
-// Compound-planetary reverse reduction (carrier held): ring/sun = -sunTeeth/ringTeeth.
-// Matches planetary.js DEFAULTS (sun 24 / ring 72).  Magnitude used to map the
-// reversed primary speed back to the forward clutch-coupling speed.
-const REVERSE_REDUCTION = 24 / 72;   // ≈ 0.333
+// Reverse epicyclic ratio — Punch working principle: annulus held, carrier
+// input, sun output reversed at 1:1.1 (audit F2 correction; the old 0.333
+// came from the fictional carrier-held geometry).  Magnitude maps the
+// reversed primary speed back to the clutch-coupling speed.
+const REVERSE_REDUCTION = 1.1;
 const REDLINE_RPM = 6500;            // engine rev limiter — caps speed in any fixed gear (G2)
 // ── Limp / emergency mode (manual Note L2808) — the failure-envelope caps ─────
 const LIMP_RPM   = 3200;             // engine cap when in limp (CAN/comm-loss substitute strategy)
@@ -2985,8 +3206,8 @@ function simStep(dt){
   // Belt radii from the ratio with belt length held constant (Rp_pri+Rp_sec=S),
   // so the DATA radii exactly satisfy Rp_sec/Rp_pri = ratio — matching the visual
   // (applyKinematics) and keeping the belt-speed invariant N_pri·Rp_pri=N_sec·Rp_sec.
-  TEL.Rp_pri = (28 + 55) / (1 + TEL.ratio);
-  TEL.Rp_sec = (28 + 55) - TEL.Rp_pri;
+  TEL.Rp_pri = (30 + 72.5) / (1 + TEL.ratio);
+  TEL.Rp_sec = (30 + 72.5) - TEL.Rp_pri;
   state.bar = 6 + f * (48 - 6);   // mirror so visual cup compression follows
 
   // ---- clutch engagement ----
@@ -3155,8 +3376,13 @@ function applyKinematics(dt = 0.016){
 
   // Ratio (linear in f, so it round-trips the physics: simStep/CAN set
   // state.bar = 6 + f_lin·42 from f_lin = (iMax-ratio)/(iMax-iMin)).
-  const iMax = D2.beltMaxR / D.beltMinR;   // ≈ 1.96 (low gear)
-  const iMin = D2.beltMinR / D.beltMaxR;   // ≈ 0.51 (overdrive)
+  // Ratio span = the MEASURED physics envelope (VEH.ratio_*), NOT the raw
+  // geometry: the diagnostics pipeline is calibrated to this car's own CAN
+  // data (0.51–1.96, r²=0.997), so every readout stays consistent with it.
+  // The rendered belt radii then sweep S/(1+ratio) inside the real
+  // 30–72.5 mm travel (audit F11).
+  const iMax = VEH.ratio_max;   // 1.96 (low gear)
+  const iMin = VEH.ratio_min;   // 0.51 (overdrive)
   const ratio = iMax - f * (iMax - iMin);
   // Belt running radii from the ratio with belt length held ≈ constant
   // (Rp_pri + Rp_sec = S).  This makes the RENDERED radius exactly satisfy
@@ -3170,13 +3396,11 @@ function applyKinematics(dt = 0.016){
   // primary closes as the belt rides higher; secondary opens by the same amount,
   // since Rp_pri + Rp_sec is constant).
   const dz = ((Rp_pri - D.beltMinR) / (D.beltMaxR - D.beltMinR)) * maxSlide;
-  movAssembly.position.y  = -dz;   // primary moveable sheave closes
+  movAssembly.position.y  = +dz;   // primary moveable sheave closes (engine side after F8 mirror)
   movAssembly2.position.y = +dz;   // secondary moveable sheave opens
 
-  belt.scale.set(Rp_pri / belt.userData.baseRp, 1, Rp_pri / belt.userData.baseRp);
-  belt.position.y = 0;
-  belt2.scale.set(Rp_sec / belt2.userData.baseRp, 1, Rp_sec / belt2.userData.baseRp);
-  belt2.position.y = 0;
+  // (Belt radii are consumed directly by the unified loop in updateBeltLink —
+  //  the old per-pulley ring scaling is gone with the rings themselves.)
 
   // ============================================================
   // EXPLODED TEARDOWN VIEW
@@ -3193,11 +3417,13 @@ function applyKinematics(dt = 0.016){
   const e = state.explodeNow;
 
   // ---- PRIMARY driveline (fan upstream parts further -Z, pump +Z) ----
-  if (typeof tcKit        !== 'undefined') tcKit.group.position.z        = -225 - e*155;
-  if (typeof revClutchKit !== 'undefined') revClutchKit.group.position.z = -180 - e*95;
-  if (typeof planetaryKit !== 'undefined') planetaryKit.group.position.z = -155 - e*52;
-  if (typeof fwdClutchKit !== 'undefined') fwdClutchKit.group.position.z = -135 - e*22;
-  if (typeof pumpKit      !== 'undefined') pumpKit.group.position.z      =  74  + e*100;
+  // Bases match the F1 repack; offsets grow upstream so exploded parts clear
+  // the mirrored primary cylinder train (which fans engine-ward too).
+  if (typeof tcKit        !== 'undefined') tcKit.group.position.z        = ((VARIANT === 'VT3') ? -206 : -194) - e*155;
+  if (typeof revClutchKit !== 'undefined') revClutchKit.group.position.z = -152 - e*130;
+  if (typeof planetaryKit !== 'undefined') planetaryKit.group.position.z = -135 - e*80;
+  if (typeof fwdClutchKit !== 'undefined') fwdClutchKit.group.position.z = -96  - e*60;
+  if (typeof pumpKit      !== 'undefined') pumpKit.group.position.z      =  82  + e*100;
   // Hidden in the teardown (e≥0.45) AND in WIREFRAME x-ray (state.wire) — without
   // the wire guard this per-frame setter would override the x-ray's mesh hiding.
   if (window.__inputShaft) window.__inputShaft.visible = (e < 0.45) && !state.wire;
@@ -3209,31 +3435,27 @@ function applyKinematics(dt = 0.016){
   if (typeof outputKit !== 'undefined') outputKit.group.position.set(SECONDARY_X, 0 - e*85, -95 - e*55);
 
   // ---- PRIMARY variator internals (crack along the shaft = world Z = local Y) ----
-  fixedSheave.position.y  = -e*48;                 // fixed sheave pulls toward engine
-  movAssembly.position.y  = -dz + e*70;            // moveable sheave + cup pulls toward pump
-  pistonCup.position.y    =  e*42;                 // hydraulic piston cup off the sheave back
-  bearings.position.y     =  e*70;                 // bearing pack further out
-  splineHub.position.y    =  e*92;                 // splined drive hub furthest out
+  // F8 mirror: fixed half now lives on the cover side, moving half + cylinder
+  // on the engine side — the explode fans each toward its own end.
+  fixedSheave.position.y  = +e*40;                 // fixed sheave pulls toward the cover
+  movAssembly.position.y  = +dz - e*40;            // moveable sheave + cylinder pulls toward engine
+  pistonCup.position.y    =  e*30;                 // piston cylinder off the sheave back (local, mirrored)
+  bearings.position.y     =  e*58;                 // primary ball bearing toward the cover
+  splineHub.position.y    =  e*80;                 // primary nut + Belleville furthest out
 
   // ---- SECONDARY variator internals ----
   fixedSheave2.position.y = -e*48;
   movAssembly2.position.y = +dz + e*70;
   springDome2.position.y  =  e*46;                 // spring dome + coil off the sheave
 
-  // ---- Belt fade out (only while the explode value is actually changing —
-  //      this nested traversal over ~180 belt children was running every frame
-  //      even when e was a constant 0). ----
+  // ---- Belt fade out (unified loop: one shared material write) ----
   if (Math.abs(e - _lastExplodeE) > 0.0004){
     const op = 1 - e*0.92;
-    [belt, belt2].forEach(bg => {
-      bg.children.forEach(ch => {
-        if (ch.isGroup){
-          ch.children.forEach(gc => { if (gc.isMesh && gc.material){ gc.material.transparent=true; gc.material.opacity = op; } });
-        }
-        if (ch.isMesh && ch.material){ ch.material.transparent=true; ch.material.opacity = op; }
-      });
-    });
-    beltLink.visible = e < 0.2;
+    // Only run the belt through the (expensive) transparent pass while it is
+    // actually fading — at op=1 keep it in the opaque pass.
+    matBelt.transparent = op < 0.999;
+    matBelt.opacity = op;
+    beltLink.visible = e < 0.6;
     _lastExplodeE = e;
   }
 
@@ -3270,7 +3492,7 @@ function applyKinematics(dt = 0.016){
 const callAnchors = [
   { el: document.getElementById('c-fixed'),   v: new THREE.Vector3(-75,  0,  0), parent: PULLEY },       // PRIMARY label on outer rim
   { el: document.getElementById('c-mov'),     v: new THREE.Vector3( 75,  0,  0), parent: SEC_PULLEY },   // SECONDARY label on outer rim
-  { el: document.getElementById('c-cup'),     v: new THREE.Vector3( 56,  64,  0), parent: PULLEY },       // primary piston cup (top-right)
+  { el: document.getElementById('c-cup'),     v: new THREE.Vector3( 56, -64,  0), parent: PULLEY },       // primary piston cylinder (engine side after F8 mirror)
   { el: document.getElementById('c-reluctor'),v: new THREE.Vector3( 0, D2.movHubH+50, 0), parent: SEC_PULLEY },   // secondary spring dome (top)
   { el: document.getElementById('c-bearing'), v: new THREE.Vector3( 22,  D.beltMaxR,  0), parent: PULLEY },      // belt top tangent (offset toward secondary so it sits over the actual top run)
   { el: document.getElementById('c-spline'),  v: new THREE.Vector3( 22, -D.beltMaxR,  0), parent: PULLEY },      // belt bottom tangent
@@ -4002,22 +4224,17 @@ function applyLiveSpin(dt){
   if (_spinClutch > 1e6) _spinClutch %= _TWO_PI;
   PULLEY.rotation.y = _spinPri;
   SEC_PULLEY.rotation.y = _spinSec;
-  // Belt travel: the straight runs flow at the shared belt LINEAR speed.
-  // v = ω_pri · Rp_pri (mm/s).  _beltFlow accumulates arc length (mm) and is
-  // consumed by updateBeltLink to slide the straight-run elements.
-  _beltFlow += (TEL.N_Prim / 60) * _TWO_PI * (TEL.Rp_pri || 28) * dt;
-  if (_beltFlow > 1e7) _beltFlow = _beltFlow % 1000;
-
-  // BELT SLIP VISUAL (Phase 5, keystone): the wrapped belt LAGS the sheave
-  // surface under slip, so the belt visibly moves relative to the pulley — the
-  // core CVT failure made visible.  Only slip ABOVE ~1% lags (normal micro-slip
-  // stays rigid).  belt/belt2 are children of the pulleys, so a counter-rotation
-  // makes their NET rotation = sheave·(1−slip).
+  // BELT SLIP VISUAL (Phase 5, keystone): under slip the belt LAGS the sheave
+  // surface.  With the unified loop this is direct: the belt's linear flow
+  // speed is (1 − slipExcess)·ω·Rp, so at high slip the pulleys visibly spin
+  // faster than the belt travels.  Only slip above ~1% lags (normal
+  // micro-slip stays rigid).
   const slipExcess = Math.max(0, (TEL.beltSlip_pct || 0) - 1) / 100;
-  _beltSlipLag += slipExcess * Math.abs((TEL.N_Prim / 60) * _TWO_PI) * dt;
-  if (_beltSlipLag > 1e6) _beltSlipLag %= _TWO_PI;
-  if (typeof belt  !== 'undefined' && belt)  belt.rotation.y  = -_beltSlipLag * Math.sign(TEL.N_Prim || 1);
-  if (typeof belt2 !== 'undefined' && belt2) belt2.rotation.y = -_beltSlipLag * Math.sign(TEL.N_sec  || 1);
+  // Belt travel: v = ω_pri · Rp_pri (mm/s), degraded by slip.  _beltFlow
+  // accumulates arc length (mm); consumed by updateBeltLink as a phase shift
+  // along the whole loop (arcs + straight runs together — one belt).
+  _beltFlow += (TEL.N_Prim / 60) * _TWO_PI * (TEL.Rp_pri || 34) * (1 - Math.min(0.9, slipExcess)) * dt;
+  if (_beltFlow > 1e7) _beltFlow = _beltFlow % 1000;
 }
 
 /* ============================================================
@@ -4043,20 +4260,26 @@ function updateAuxComponents(dt){
     revClutchKit.group.setSlip(p_rev > 1 ? slip : 0);
     revClutchKit.group.setTemp(tClu);
   }
-  // Clutch plate rotation.  Both clutch drums are driven by the engine/damper
-  // input at engine speed and in the engine's (forward) rotational direction —
-  // the REVERSAL happens downstream at the planetary, NOT at the clutch.  So
-  // both plate packs spin the SAME direction at full input speed when their
-  // apply pressure is present.  (Previously they used an arbitrary 0.4× factor
-  // and the reverse clutch was negated — both kinematically wrong.)
-  // _spinPri tracks N_Prim which ≈ engine speed when a clutch is locked.
-  // Forward plate spin (engine direction, never reversed) + the slip dither
-  // (composed, not overwritten — fixes the dead M4 dither).
+  // Plate motion (audit F2 correction):
+  //  - FWD is a ROTATING clutch: drum + plates spin at engine speed when
+  //    applied (+ slip dither).
+  //  - REV is a case-grounded BRAKE: its steels are splined into the housing
+  //    and never spin; its frictions are splined to the ANNULUS, so they
+  //    mirror the planetary ring — turning in D (set locked 1:1), clamped
+  //    stationary in R.  The brake housing itself never rotates.
   if (fwdClutchKit?.refs?.plateGroup){
-    fwdClutchKit.refs.plateGroup.rotation.y = (p_fwd > 1) ? (_spinClutch + (fwdClutchKit.group.slipDither || 0)) : 0;
+    const fwdSpin = (p_fwd > 1) ? (_spinClutch + (fwdClutchKit.group.slipDither || 0)) : 0;
+    fwdClutchKit.refs.plateGroup.rotation.y = fwdSpin;
+    if (fwdClutchKit.refs.drum) fwdClutchKit.refs.drum.rotation.y = fwdSpin;   // real fwd drum rotates
+    if (fwdClutchKit.refs.hub)  fwdClutchKit.refs.hub.rotation.y  = fwdSpin;
   }
-  if (revClutchKit?.refs?.plateGroup){
-    revClutchKit.refs.plateGroup.rotation.y = (p_rev > 1) ? (_spinClutch + (revClutchKit.group.slipDither || 0)) : 0;
+  if (revClutchKit?.refs?.plates){
+    const ringPhase = (planetaryKit?.refs?.ringGroup?.rotation.y || 0)
+                    + ((p_rev > 1) ? (revClutchKit.group.slipDither || 0) : 0);
+    revClutchKit.refs.plates.forEach(pl => {
+      if (pl.userData.isFriction) pl.rotation.y = ringPhase;   // frictions follow the annulus
+    });
+    revClutchKit.refs.plateGroup.rotation.y = 0;               // steels grounded to the case
   }
 
   // --- Planetary gear set ---
@@ -4535,8 +4758,8 @@ function computeDerivedFromCAN(dt = 0.016){
   if (TEL.ratio > 0){
     const f = Math.max(0, Math.min(1, (VEH.ratio_max - TEL.ratio) / (VEH.ratio_max - VEH.ratio_min)));
     // ratio-consistent radii (belt length held constant) — see simStep note
-    TEL.Rp_pri = (28 + 55) / (1 + TEL.ratio);
-    TEL.Rp_sec = (28 + 55) - TEL.Rp_pri;
+    TEL.Rp_pri = (30 + 72.5) / (1 + TEL.ratio);
+    TEL.Rp_sec = (30 + 72.5) - TEL.Rp_pri;
     state.bar  = 6 + f * (48 - 6);
   }
 
