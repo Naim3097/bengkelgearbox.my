@@ -1692,21 +1692,86 @@ const caseHousing = (() => {
   grp.add(mainMesh);
   grp.add(new THREE.LineSegments(new THREE.EdgesGeometry(mainGeom, 24), matCaseEdge));
 
-  // ---- BELL-HOUSING: flared lathe on the primary (engine-input) axis ----
+  // ---- BELL HOUSING (PHOTOREAL P4) ----
+  // The real VT2 bell is ONE asymmetric casting: an irregular oval engine
+  // flange that wraps the pulley bores AND the differential pod — not a
+  // circular trumpet on the primary axis.  Lofted here from the kidney
+  // front edge to a superellipse flange at the engine plane.
+  const BELL_Z0 = caseZ0 + 2;              // meets the main case front
+  const BELL_ZF = -223;                    // engine flange plane
+  const FLANGE = { x: -8, y: -24, a: 168, b: 148, n: 2.5 };
+  const flangePt = (th) => {
+    const c = Math.cos(th), s = Math.sin(th);
+    const r = Math.pow(
+      Math.pow(Math.abs(c) / FLANGE.a, FLANGE.n) + Math.pow(Math.abs(s) / FLANGE.b, FLANGE.n),
+      -1 / FLANGE.n);
+    return [FLANGE.x + r * c, FLANGE.y + r * s];
+  };
+  const caseEdgePt = (th) => {             // same union formula as the shell
+    const ux = Math.cos(th), uy = Math.sin(th);
+    const dotR = d * ux, dotL = -d * ux;
+    let rad = Math.max(dotR + Math.sqrt(dotR * dotR + k), dotL + Math.sqrt(dotL * dotL + k));
+    if (uy < 0) rad += (-uy) * 10;
+    return [ux * rad, uy * rad];
+  };
   {
-    const bellPts = [
-      [58, 0], [66, 6], [82, 26], [104, 56], [122, 80],   // flare out to engine face
-      [128, 86],                                            // bolt-flange OD
-      [128, 92], [112, 92],                                 // flange face + inner lip
-      [108, 88], [108, 60], [70, 18], [60, 4], [0, 0],      // hollow back to centre
-    ];
-    const bellGeom = lathe(bellPts.map(p => [p[0], p[1]]), 72);
-    bellGeom.rotateX(-Math.PI / 2);        // local +Y → world -Z
-    bellGeom.translate(PRIMARY_X, 0, caseZ0 + 4);   // mouth opens toward engine (-Z)
-    const bell = new THREE.Mesh(bellGeom, matCase);
+    const SEG = 96;
+    const pos = [], uv = [];
+    for (let i = 0; i < SEG; i++){
+      const a0 = (i / SEG) * Math.PI * 2, a1 = ((i + 1) / SEG) * Math.PI * 2;
+      const A0 = caseEdgePt(a0), A1 = caseEdgePt(a1);
+      const B0 = flangePt(a0),  B1 = flangePt(a1);
+      const u0 = (i / SEG) * 6, u1 = ((i + 1) / SEG) * 6;
+      pos.push(A0[0], A0[1], BELL_Z0,  B0[0], B0[1], BELL_ZF,  A1[0], A1[1], BELL_Z0);
+      uv.push(u0, 0,  u0, 1,  u1, 0);
+      pos.push(A1[0], A1[1], BELL_Z0,  B0[0], B0[1], BELL_ZF,  B1[0], B1[1], BELL_ZF);
+      uv.push(u1, 0,  u0, 1,  u1, 1);
+    }
+    const loftGeom = new THREE.BufferGeometry();
+    loftGeom.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    loftGeom.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    loftGeom.computeVertexNormals();
+    const bell = new THREE.Mesh(loftGeom, matCase);
     bell.renderOrder = 5;
     grp.add(bell);
-    grp.add(new THREE.LineSegments(new THREE.EdgesGeometry(bellGeom, 28), matCaseEdge));
+
+    // Machined flange lip: flat ring at the engine plane, +14 proud of the loft
+    const lipPos = [], lipUv = [];
+    for (let i = 0; i < SEG; i++){
+      const a0 = (i / SEG) * Math.PI * 2, a1 = ((i + 1) / SEG) * Math.PI * 2;
+      const B0 = flangePt(a0), B1 = flangePt(a1);
+      const off = (B, a) => { const dx = B[0] - FLANGE.x, dy = B[1] - FLANGE.y, l = Math.hypot(dx, dy);
+        return [B[0] + dx / l * 14, B[1] + dy / l * 14]; };
+      const O0 = off(B0, a0), O1 = off(B1, a1);
+      lipPos.push(B0[0], B0[1], BELL_ZF,  O0[0], O0[1], BELL_ZF,  B1[0], B1[1], BELL_ZF);
+      lipUv.push(0, 0, 0, 1, 1, 0);
+      lipPos.push(B1[0], B1[1], BELL_ZF,  O0[0], O0[1], BELL_ZF,  O1[0], O1[1], BELL_ZF);
+      lipUv.push(1, 0, 0, 1, 1, 1);
+    }
+    const lipGeom = new THREE.BufferGeometry();
+    lipGeom.setAttribute('position', new THREE.Float32BufferAttribute(lipPos, 3));
+    lipGeom.setAttribute('uv', new THREE.Float32BufferAttribute(lipUv, 2));
+    lipGeom.computeVertexNormals();
+    const lip = new THREE.Mesh(lipGeom, matSteel);   // gasket face machines bright
+    lip.renderOrder = 5;
+    grp.add(lip);
+
+    // Hologram outlines: clean rings instead of noisy triangle-soup edges
+    const ringLine = (ptFn, z, scale = 1) => {
+      const g = new THREE.BufferGeometry();
+      const arr = [];
+      for (let i = 0; i < SEG; i++){
+        const p = ptFn((i / SEG) * Math.PI * 2);
+        arr.push(p[0] * scale, p[1] * scale, z);
+      }
+      g.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3));
+      const l = new THREE.LineLoop(g, matCaseEdge);
+      grp.add(l);
+      return l;
+    };
+    ringLine(caseEdgePt, BELL_Z0);
+    ringLine(flangePt, BELL_ZF);
+    ringLine(flangePt, BELL_ZF, 1.085);
   }
 
   // ---- OIL PAN: shallow sump slung under the case ----
@@ -1889,13 +1954,27 @@ const caseHousing = (() => {
     grp.add(boss); grp.add(bolt);
   };
 
-  // Bell-housing flange bolt circle (engine face, around the primary axis).
+  // P4 — Bell flange hardware on the OVAL: 9 bolt lugs in the real irregular
+  // pattern (clustered where the loads are, not an even circle) + 2 dowel pins.
   {
-    const bz = caseZ0 + 4 - 86;       // world z of the flange face
-    const br = 120;
-    for (let i = 0; i < 12; i++){
-      const a = (i/12) * Math.PI*2 + Math.PI/12;
-      placeBolt(PRIMARY_X + Math.cos(a)*br, Math.sin(a)*br, bz, true);
+    const lugGeom = new THREE.CylinderGeometry(7, 8.5, 10, 14);
+    const lugAngles = [0.26, 0.96, 1.66, 2.44, 3.10, 3.84, 4.52, 5.18, 5.82];
+    for (const a of lugAngles){
+      const p = flangePt(a);
+      const lx = p[0] * 1.05, ly = (p[1] + 24) * 1.05 - 24;   // bias offset about the flange centre
+      const lug = new THREE.Mesh(lugGeom, matCase);
+      lug.rotation.x = Math.PI / 2;
+      lug.position.set(lx, ly, BELL_ZF + 3);
+      grp.add(lug);
+      placeBolt(lx, ly, BELL_ZF - 3, true);
+    }
+    const dowelGeom = new THREE.CylinderGeometry(3, 3, 9, 10);
+    for (const a of [1.32, 4.1]){
+      const p = flangePt(a);
+      const dw = new THREE.Mesh(dowelGeom, matSteel);
+      dw.rotation.x = Math.PI / 2;
+      dw.position.set(p[0] * 1.02, p[1] * 1.02, BELL_ZF - 4);
+      grp.add(dw);
     }
   }
   // Case-to-cover bolt bosses following the kidney outline (front + rear faces).
@@ -1906,13 +1985,71 @@ const caseHousing = (() => {
       placeBolt(Math.cos(th)*rr, Math.sin(th)*rr, fz, true);
     }
   }
-  // Longitudinal strengthening ribs over each bore crown.
-  for (const rx of [PRIMARY_X, SECONDARY_X]){
-    const ribGeom = new THREE.BoxGeometry(5, 7, caseLen - 30);
+  // P4 — RIB NETWORK: the real casting is densely webbed.
+  // Longitudinal crown ribs over each bore + two between/outboard.
+  for (const [rx, ry] of [[PRIMARY_X, 90], [SECONDARY_X, 90], [-20, 92], [130, 74], [-150, 60]]){
+    const ribGeom = new THREE.BoxGeometry(5, 8, caseLen - 30);
     const rib = new THREE.Mesh(ribGeom, matCase);
-    rib.position.set(rx, 90, caseZ0 + caseLen/2);
+    rib.position.set(rx, ry, caseZ0 + caseLen/2);
     grp.add(rib);
     grp.add(new THREE.LineSegments(new THREE.EdgesGeometry(ribGeom, 20), matCaseEdge));
+  }
+  // Radial bell webs: swept from the case front edge to the oval flange.
+  {
+    const webAngles = [0.5, 1.1, 1.9, 2.6, 3.3, 4.0, 4.9, 5.6];
+    for (const a of webAngles){
+      const A = caseEdgePt(a), B = flangePt(a);
+      const len = Math.hypot(B[0] - A[0], B[1] - A[1], BELL_ZF - (caseZ0 + 2));
+      const g = new THREE.BoxGeometry(4.5, 11, len * 0.96);
+      const m = new THREE.Mesh(g, matCase);
+      m.position.set((A[0] + B[0]) / 2 * 1.025, (A[1] + B[1]) / 2 * 1.025, (caseZ0 + 2 + BELL_ZF) / 2);
+      m.lookAt(B[0] * 1.025, B[1] * 1.025, BELL_ZF);
+      grp.add(m);
+    }
+  }
+  // Differential-pod gussets tying the pod into the bell underside.
+  {
+    for (const a of [1.0, 1.7, 2.4]){
+      const gx = 36 + Math.cos(a) * 60, gy = -87 + Math.sin(a) * 60;
+      const g = new THREE.BoxGeometry(5.5, 26, 64);
+      const m = new THREE.Mesh(g, matCase);
+      m.position.set(gx, gy + 8, -100);
+      m.lookAt(gx * 1.1, gy + 30, -140);
+      grp.add(m);
+    }
+  }
+  // Machined joint lips where the castings meet (front joint + rear cover).
+  {
+    const lipCurve = (z) => {
+      const pts = [];
+      for (let i = 0; i < 48; i++){
+        const p = caseEdgePt((i / 48) * Math.PI * 2);
+        pts.push(new THREE.Vector3(p[0] * 1.01, p[1] * 1.01, z));
+      }
+      const curve = new THREE.CatmullRomCurve3(pts, true);
+      const tg = new THREE.TubeGeometry(curve, 96, 2.2, 8, true);
+      const m = new THREE.Mesh(tg, matSteel);
+      m.renderOrder = 5;
+      grp.add(m);
+    };
+    lipCurve(caseZ0 + 1.5);
+    lipCurve(caseZ0 + caseLen - 1.5);
+  }
+  // Pan-rail stiffeners on the flanks above the sump.
+  {
+    const sg = new THREE.BoxGeometry(6, 24, 9);
+    for (const [sx, sz] of [[-142, -16], [-140, 42], [145, -16], [142, 42]]){
+      const m = new THREE.Mesh(sg, matCase);
+      m.position.set(sx, -70, sz);
+      m.lookAt(0, -70, sz);                 // face the bore axis so the rib hugs the shell
+      grp.add(m);
+    }
+  }
+  // Raised casting part-number pad near the crown stamp.
+  {
+    const pad = new THREE.Mesh(new THREE.BoxGeometry(50, 2.5, 14), matCase);
+    pad.position.set(-56, boundaryR(Math.PI / 2) - 2, 40);
+    grp.add(pad);
   }
 
   // Stamped manufacturer marking on the case crown.
