@@ -1114,16 +1114,24 @@ function snapLook(m){
     cc: m.clearcoat, ccRough: m.clearcoatRoughness,
   };
 }
-function regMat(mat, family){
+function regMat(mat, family, legacy = false){
   if (!mat || (mat.userData && mat.userData.__lookReg)) return mat;
   (mat.userData || (mat.userData = {})).__lookReg = true;
-  LOOK_REGISTRY.push({ mat, family, snap: snapLook(mat) });
+  LOOK_REGISTRY.push({ mat, family, legacy, snap: snapLook(mat) });
   return mat;
 }
 function regKit(materials, famMap, fallback = 'machSteel'){
   if (!materials) return;
   for (const [k, mat] of Object.entries(materials)) regMat(mat, famMap[k] || fallback);
 }
+// The five shared materials are mode-styled by the LEGACY applyMode() path in
+// holo/studio; registering them `legacy` means applyLooks only touches them in
+// REAL (family recipe + P3 maps) and only strips maps on the way out.
+regMat(matAlloy,   'machSteel', true);    // sheaves, cylinders, drum shells — forged/turned steel
+regMat(matSteel,   'machSteel', true);    // shafts, nuts, splines
+regMat(matBearing, 'machSteel', true);
+regMat(matBelt,    'hardSteel', true);    // stamped elements + ring packs
+// (matBall stays unregistered — flat chrome is right for bearing balls.)
 
 // -- Scene-walking section view (Phase 4.5 rework) ----------------------------
 // The 5 materials above are *seed* clippables — every component kit creates
@@ -2603,6 +2611,17 @@ const _bandR = new THREE.InstancedMesh(_bandGeom, matBelt, BELT.BAND_N);
   im.frustumCulled = false;               // instances spread far beyond the base geometry bounds
   beltLink.add(im);
 });
+// PHOTOREAL P3 — per-element value jitter (±4%): 400 identical stamped plates
+// never share one exact tone in real life.  Imperceptible in holo mode.
+{
+  const c = new THREE.Color();
+  for (let i = 0; i < BELT.N; i++){
+    const v = 0.96 + Math.random() * 0.08;
+    c.setRGB(v, v, v);
+    _beltElems.setColorAt(i, c);
+  }
+  _beltElems.instanceColor.needsUpdate = true;
+}
 // Wireframe/x-ray guide — a line loop tracing the belt pitch path (Line
 // objects survive the x-ray mesh-hiding, like the old band edges did).
 const BELT_GUIDE_N = 140;
@@ -2974,34 +2993,84 @@ const MODE_DEFS = {
   },
 };
 
-/* PHOTOREAL P1 — REAL-mode material recipes per family (flat values; texture
-   maps arrive in P3).  Non-REAL modes restore each material's registration
-   snapshot, so HOLOGRAM and STUDIO render exactly as before. */
+/* PHOTOREAL P3 — tileable PBR maps (procedurally generated, assets/textures/,
+   ~1 MB total).  Lazy-loaded on the FIRST switch into REAL so hologram/studio
+   visitors download nothing; when the last map lands, looks re-apply. */
+const REAL_TEX = { loaded: false, loading: false, pending: 0 };
+function loadRealTextures(){
+  if (REAL_TEX.loading || REAL_TEX.loaded) return;
+  REAL_TEX.loading = true;
+  const tl = new THREE.TextureLoader();
+  const aniso = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+  const load = (file, repX, repY) => {
+    const t = tl.load('assets/textures/' + file, () => {
+      REAL_TEX.pending--;
+      if (REAL_TEX.pending === 0){
+        REAL_TEX.loaded = true;
+        if (state.mode === 'real') applyLooks('real');   // re-apply with maps in
+      }
+    });
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(repX, repY);
+    t.anisotropy = aniso;
+    return t;
+  };
+  REAL_TEX.pending = 5;
+  REAL_TEX.castRough      = load('cast_alu_rough.jpg',      2.0, 2.0);   // porosity blotches
+  REAL_TEX.castNormal     = load('cast_alu_normal.png',     3.0, 3.0);   // sand grain
+  REAL_TEX.brushRough     = load('brushed_steel_rough.jpg', 2.0, 1.0);   // turning marks (along U)
+  REAL_TEX.brushRoughFine = load('brushed_steel_rough.jpg', 4.0, 2.0);
+  REAL_TEX.peelNormal     = load('paint_peel_normal.png',   2.5, 2.5);   // stamped-paint orange peel
+}
+
+/* PHOTOREAL P1 — REAL-mode material recipes per family.  When a family names
+   a rough map, the map carries the absolute roughness and the scalar goes to
+   1.0.  Non-REAL modes restore each material's registration snapshot, so
+   HOLOGRAM and STUDIO render exactly as before. */
 const FAMILY_LOOKS = {
   // Sand-cast aluminium reads mostly DIFFUSE (low metalness) — full-metal
   // values go black on the shadow side with a modest env map.
-  castAlu:    { color:0x999f9c, metal:0.55, rough:0.52, envInt:1.4 },
-  machSteel:  { color:0xbcc3c9, metal:0.95, rough:0.24, envInt:1.8, cc:0.5, ccRough:0.2 },
-  hardSteel:  { color:0x767d84, metal:0.85, rough:0.40, envInt:1.5 },
+  castAlu:    { color:0x999f9c, metal:0.55, rough:0.52, envInt:1.4, roughMapKey:'castRough', normalMapKey:'castNormal', normalScale:0.5 },
+  machSteel:  { color:0xbcc3c9, metal:0.95, rough:0.24, envInt:1.8, cc:0.5, ccRough:0.2, roughMapKey:'brushRough' },
+  hardSteel:  { color:0x767d84, metal:0.85, rough:0.40, envInt:1.5, roughMapKey:'brushRoughFine' },
   friction:   { color:0x33261b, metal:0.0,  rough:0.92, envInt:0.6 },
-  springSteel:{ color:0x454a51, metal:0.9,  rough:0.50, envInt:1.4 },
-  paintedPan: { color:0x1b1d20, metal:0.0,  rough:0.42, envInt:1.0, cc:0.9, ccRough:0.18 },
+  springSteel:{ color:0x454a51, metal:0.9,  rough:0.50, envInt:1.4, roughMapKey:'brushRoughFine' },
+  paintedPan: { color:0x1b1d20, metal:0.0,  rough:0.42, envInt:1.0, cc:0.9, ccRough:0.18, normalMapKey:'peelNormal', normalScale:0.3 },
   brass:      { color:0x9a7a4a, metal:0.95, rough:0.45, envInt:1.5 },
   copperCoil: { color:0xa66a3a, metal:0.95, rough:0.35, envInt:1.6 },
   plastic:    { color:0x131517, metal:0.0,  rough:0.60, envInt:0.8 },
   sealRubber: { color:0x0e0f10, metal:0.0,  rough:0.85, envInt:0.5 },
-  castIron:   { color:0x53565a, metal:0.7,  rough:0.62, envInt:1.2 },
+  castIron:   { color:0x53565a, metal:0.7,  rough:0.62, envInt:1.2, roughMapKey:'castRough' },
   lineEdge:   { lineOpacity:0.0 },
 };
+/* Roughness semantics with a map present: three multiplies scalar × texel,
+   and the P3 maps encode the absolute target band — so the scalar flips to
+   1.0 while a map is active. */
 function applyLooks(mode){
   for (const r of LOOK_REGISTRY){
     const m = r.mat, s = r.snap;
+    if (r.legacy && mode !== 'real'){
+      // legacy-styled materials: just strip the REAL-only maps; the classic
+      // applyMode() path owns their per-mode values.
+      if (m.roughnessMap){ m.roughnessMap = null; m.needsUpdate = true; }
+      if (m.normalMap){ m.normalMap = null; m.needsUpdate = true; }
+      continue;
+    }
     if (mode === 'real'){
       const L = FAMILY_LOOKS[r.family] || FAMILY_LOOKS.machSteel;
       if (L.lineOpacity !== undefined){ m.opacity = L.lineOpacity; continue; }
       if (m.color && L.color !== undefined) m.color.setHex(L.color);
       if (m.emissive){ m.emissive.setHex(0x000000); m.emissiveIntensity = 0; }
-      if (m.roughness !== undefined && L.rough !== undefined) m.roughness = L.rough;
+      // P3 — texture maps (only once loaded; scalar roughness = 1.0 under a map)
+      const rm = (REAL_TEX.loaded && L.roughMapKey)  ? REAL_TEX[L.roughMapKey]  : null;
+      const nm = (REAL_TEX.loaded && L.normalMapKey) ? REAL_TEX[L.normalMapKey] : null;
+      if (m.roughnessMap !== undefined && m.roughnessMap !== rm){ m.roughnessMap = rm; m.needsUpdate = true; }
+      if (m.normalMap !== undefined && m.normalMap !== nm){
+        m.normalMap = nm;
+        if (nm && m.normalScale) m.normalScale.set(L.normalScale ?? 0.5, L.normalScale ?? 0.5);
+        m.needsUpdate = true;
+      }
+      if (m.roughness !== undefined && L.rough !== undefined) m.roughness = rm ? 1.0 : L.rough;
       if (m.metalness !== undefined && L.metal !== undefined) m.metalness = L.metal;
       if (m.envMapIntensity !== undefined) m.envMapIntensity = L.envInt ?? 1.0;
       if (m.clearcoat !== undefined){
@@ -3013,6 +3082,8 @@ function applyLooks(mode){
       m.transparent = m.opacity < 1.0;
       m.depthWrite = true;
     } else {
+      if (m.roughnessMap){ m.roughnessMap = null; m.needsUpdate = true; }   // P3 maps are REAL-only
+      if (m.normalMap){ m.normalMap = null; m.needsUpdate = true; }
       if (s.color !== undefined && m.color) m.color.setHex(s.color);
       if (s.emissive !== undefined && m.emissive){ m.emissive.setHex(s.emissive); m.emissiveIntensity = s.emissiveInt; }
       if (s.rough  !== undefined) m.roughness = s.rough;
@@ -3076,6 +3147,7 @@ function applyMode(){
   // the other modes get the original fog object back untouched.
   if (applyMode._fog === undefined) applyMode._fog = scene.fog;
   scene.fog = isReal ? null : applyMode._fog;
+  if (isReal) loadRealTextures();          // P3 — fetch PBR maps on first REAL entry
   studioStage.visible = isReal;
   key.castShadow = isReal;
   smaa.enabled = isReal;
@@ -5361,7 +5433,8 @@ applyMode();
 
 // expose for debugging
 window.__d = { camera, controls, PULLEY, SEC_PULLEY, fixedSheave, movAssembly, belt, fixedSheave2, movAssembly2, belt2, beltLink, frameSubject, applyMode, state, THREE, TEL, DTC_INFO, simStep, BRIDGE, VEH, SIGNAL_MAP, applyBridgeSignal, applyReplaySignals, computeDerivedFromCAN, liveSignals, updateAuxComponents, fwdClutchKit, revClutchKit, planetaryKit, pumpKit, valveBodyKit, tcKit, outputKit, oilFlow, getDriveState, desiredRatioFor,
-  renderer, composer, bloom, film, smaa, studioStage, key, amb, rim, fill, studioSoftbox, studioGroundFill, camFill };   // PHOTOREAL P2 — render-pipeline debug access
+  renderer, composer, bloom, film, smaa, studioStage, key, amb, rim, fill, studioSoftbox, studioGroundFill, camFill,
+  REAL_TEX, LOOK_REGISTRY, matAlloy, matSteel, matBelt };   // PHOTOREAL P2/P3 — render-pipeline debug access
 
 /* ============================================================
    TEST HARNESS (Phase 0.3) — drive the sim + read invariants from eval,
