@@ -836,6 +836,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';   // PHOTOREAL P2 — crisp AA for REAL mode
 import { FilmPass } from 'three/addons/postprocessing/FilmPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { buildClutchPack }     from './lib/cvt-parts/clutch-pack.js?r2';
@@ -1011,6 +1012,50 @@ const studioGroundFill = new THREE.HemisphereLight(0xc8d4e0, 0x1a1410, 0.0); sce
 // camera-side fill — keeps the surface facing the viewer from going to a black silhouette
 // in solid/studio mode (metals otherwise show only dim environment reflections).
 const camFill = new THREE.DirectionalLight(0xeaf2ff, 0.0); scene.add(camFill);
+
+/* ============================================================
+   PHOTOREAL P2 — white studio stage (REAL mode only)
+   An axisymmetric infinity cove (floor → fillet → wall) so the
+   auto-orbit never finds a seam, plus soft key-light shadows.
+   The stage is OUTSIDE frameSubject()'s parts list and opts out
+   of the SECTION clip, so framing and cut-aways ignore it.
+============================================================ */
+renderer.shadowMap.enabled = true;                  // zero cost until a light casts
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.camera.left = -320; key.shadow.camera.right = 320;
+key.shadow.camera.top  =  320; key.shadow.camera.bottom = -320;
+key.shadow.camera.near =  50;  key.shadow.camera.far = 1400;
+key.shadow.bias = -0.0004;
+key.shadow.normalBias = 1.5;
+key.castShadow = false;                             // switched on only while REAL is active
+
+const studioStage = (() => {
+  const g = new THREE.Group(); g.name = 'studio-stage'; g.visible = false;
+  const matCyc = new THREE.MeshStandardMaterial({
+    color: 0xf5f4f2, roughness: 0.96, metalness: 0.0, side: THREE.DoubleSide,
+  });
+  matCyc.userData.skipSection = true;               // the cut plane never slices the stage
+  // Infinity cove profile: floor disc → R400 fillet → tall wall.  Sized so the
+  // REAL product framing (camera ≈ 800-1100 mm out at 26° FOV) always sits
+  // INSIDE the cove — from outside, a cove reads as a grey dome.
+  const pts = [new THREE.Vector2(0, 0), new THREE.Vector2(1000, 0)];
+  const R = 400, cx = 1000, cy = R;
+  for (let i = 1; i <= 12; i++){
+    const a = (i / 12) * Math.PI / 2;
+    pts.push(new THREE.Vector2(cx + Math.sin(a) * R, cy - Math.cos(a) * R));
+  }
+  pts.push(new THREE.Vector2(1400, 1200));
+  const cycGeom = new THREE.LatheGeometry(pts, 64);
+  cycGeom.computeVertexNormals();
+  const cyc = new THREE.Mesh(cycGeom, matCyc);
+  cyc.receiveShadow = true;
+  cyc.castShadow = false;
+  cyc.position.y = -158;                            // floor just under the pan/case
+  g.add(cyc);
+  scene.add(g);
+  return g;
+})();
 
 /* ============================================================
    MATERIALS  — clipping plane for section view
@@ -2747,6 +2792,10 @@ composer.addPass(bloom);
 bloom.setSize(innerWidth/2, innerHeight/2);   // addPass() re-sizes to full; force back to half
 const film = new FilmPass(0.18, false);
 composer.addPass(film);
+// PHOTOREAL P2 — SMAA for REAL mode (bloom is off there; this keeps edges crisp)
+const smaa = new SMAAPass(innerWidth * renderer.getPixelRatio(), innerHeight * renderer.getPixelRatio());
+smaa.enabled = false;                                // REAL mode only (applyMode)
+composer.addPass(smaa);
 composer.addPass(new OutputPass());
 
 /* ============================================================
@@ -2896,25 +2945,30 @@ const MODE_DEFS = {
      PBR (no maps yet); the studio stage (IBL/cyclorama/shadows/SMAA) lands in
      P2 and texture maps in P3 of the photoreal plan. */
   real: {
-    clearColor: 0xf2f1ee, clearAlpha: 1.0,
+    clearColor: 0xe9e7e2, clearAlpha: 1.0,
     exposure: 1.0,
-    camFill: 0.35,
+    fov: 26,                               // product-render perspective (others use 32)
     bloomStrength: 0.0, bloomRadius: 0.0, bloomThreshold: 1.0,
     filmIntensity: 0.0,
     rainOpacity: 0.0, scanOpacity: 0.0, vignetteOpacity: 0.0,
     envIntensity: 1.0,
-    studioSoftbox: 1.0, hemi: 0.8,
-    amb: { color:0xffffff, intensity:0.4 },
-    keyCol: 0xfff1e0, keyInt: 1.35,
-    rimCol: 0xffffff, rimInt: 0.25,
-    fillCol: 0xf2f6fa, fillInt: 0.6,
+    studioSoftbox: 0.6, hemi: 0.55,
+    amb: { color:0xffffff, intensity:0.25 },
+    // Key from HIGH-LEFT while the product camera looks from the right —
+    // ~70° azimuth separation gives modelling + a visible ground shadow
+    // (shared-position frontal key was washing all form away).
+    keyPos: [-340, 520, 260],
+    keyCol: 0xfff1e0, keyInt: 2.0,
+    rimCol: 0xffffff, rimInt: 0.45,
+    fillCol: 0xf2f6fa, fillInt: 0.35,
+    camFill: 0.3,
     materials: {
       // forged/machined steel pulleys & shafts, no holo emissive anywhere
-      alloy: { opacity:1.0, emissive:0x000000, emissiveInt:0.0, color:0xaab2b8, roughness:0.30, metalness:1.0, envInt:1.3 },
-      steel: { opacity:1.0, emissive:0x000000, emissiveInt:0.0, color:0xc2c9cf, roughness:0.20, metalness:1.0, envInt:1.5 },
-      bearing:{ opacity:1.0, emissive:0x000000, emissiveInt:0.0, color:0xd4d9dd, roughness:0.12, metalness:1.0, envInt:1.7 },
-      ball:  { opacity:1.0, emissive:0x000000, emissiveInt:0.0, color:0xe8ecef, roughness:0.05, metalness:1.0, envInt:1.9 },
-      belt:  { opacity:1.0, emissive:0x000000, emissiveInt:0.0, color:0x70767d, roughness:0.36, metalness:1.0, envInt:1.2 },
+      alloy: { opacity:1.0, emissive:0x000000, emissiveInt:0.0, color:0xb0b7bd, roughness:0.30, metalness:0.85, envInt:1.6 },
+      steel: { opacity:1.0, emissive:0x000000, emissiveInt:0.0, color:0xc2c9cf, roughness:0.20, metalness:0.95, envInt:1.8 },
+      bearing:{ opacity:1.0, emissive:0x000000, emissiveInt:0.0, color:0xd4d9dd, roughness:0.12, metalness:0.95, envInt:1.9 },
+      ball:  { opacity:1.0, emissive:0x000000, emissiveInt:0.0, color:0xe8ecef, roughness:0.05, metalness:1.0, envInt:2.0 },
+      belt:  { opacity:1.0, emissive:0x000000, emissiveInt:0.0, color:0x7d838a, roughness:0.36, metalness:0.9, envInt:1.5 },
     },
     edgeOpacity: 0.0,
   },
@@ -2924,17 +2978,19 @@ const MODE_DEFS = {
    maps arrive in P3).  Non-REAL modes restore each material's registration
    snapshot, so HOLOGRAM and STUDIO render exactly as before. */
 const FAMILY_LOOKS = {
-  castAlu:    { color:0x9aa29f, metal:0.85, rough:0.58, envInt:1.2 },
-  machSteel:  { color:0xb9c0c6, metal:1.0,  rough:0.24, envInt:1.4, cc:0.5, ccRough:0.2 },
-  hardSteel:  { color:0x6a7077, metal:1.0,  rough:0.38, envInt:1.2 },
-  friction:   { color:0x2e2219, metal:0.0,  rough:0.92, envInt:0.6 },
-  springSteel:{ color:0x3a3f46, metal:1.0,  rough:0.50, envInt:1.0 },
-  paintedPan: { color:0x17191c, metal:0.0,  rough:0.42, envInt:1.0, cc:0.9, ccRough:0.18 },
-  brass:      { color:0x9a7a4a, metal:1.0,  rough:0.45, envInt:1.2 },
-  copperCoil: { color:0xa66a3a, metal:1.0,  rough:0.35, envInt:1.3 },
-  plastic:    { color:0x101214, metal:0.0,  rough:0.60, envInt:0.8 },
-  sealRubber: { color:0x0c0d0e, metal:0.0,  rough:0.85, envInt:0.5 },
-  castIron:   { color:0x4a4d50, metal:0.9,  rough:0.65, envInt:1.0 },
+  // Sand-cast aluminium reads mostly DIFFUSE (low metalness) — full-metal
+  // values go black on the shadow side with a modest env map.
+  castAlu:    { color:0x999f9c, metal:0.55, rough:0.52, envInt:1.4 },
+  machSteel:  { color:0xbcc3c9, metal:0.95, rough:0.24, envInt:1.8, cc:0.5, ccRough:0.2 },
+  hardSteel:  { color:0x767d84, metal:0.85, rough:0.40, envInt:1.5 },
+  friction:   { color:0x33261b, metal:0.0,  rough:0.92, envInt:0.6 },
+  springSteel:{ color:0x454a51, metal:0.9,  rough:0.50, envInt:1.4 },
+  paintedPan: { color:0x1b1d20, metal:0.0,  rough:0.42, envInt:1.0, cc:0.9, ccRough:0.18 },
+  brass:      { color:0x9a7a4a, metal:0.95, rough:0.45, envInt:1.5 },
+  copperCoil: { color:0xa66a3a, metal:0.95, rough:0.35, envInt:1.6 },
+  plastic:    { color:0x131517, metal:0.0,  rough:0.60, envInt:0.8 },
+  sealRubber: { color:0x0e0f10, metal:0.0,  rough:0.85, envInt:0.5 },
+  castIron:   { color:0x53565a, metal:0.7,  rough:0.62, envInt:1.2 },
   lineEdge:   { lineOpacity:0.0 },
 };
 function applyLooks(mode){
@@ -2985,6 +3041,7 @@ function applyMode(){
   document.querySelector('.scan').style.opacity = m.scanOpacity;
   document.querySelector('.vignette').style.opacity = m.vignetteOpacity;
   amb.color.setHex(m.amb.color); amb.intensity = m.amb.intensity;
+  key.position.fromArray(m.keyPos ?? [180, 240, 160]);   // per-mode key direction (P2)
   key.color.setHex(m.keyCol);    key.intensity = m.keyInt;
   rim.color.setHex(m.rimCol);    rim.intensity = m.rimInt;
   fill.color.setHex(m.fillCol);  fill.intensity = m.fillInt;
@@ -3011,6 +3068,21 @@ function applyMode(){
   // WIREFRAME x-ray must stay readable even in modes that hide edges (REAL)
   matEdge.opacity = state.wire ? Math.max(0.85, m.edgeOpacity) : m.edgeOpacity;
   applyLooks(state.mode);   // PHOTOREAL P1 — kit + local materials follow the mode
+
+  // PHOTOREAL P2 — studio stage, shadows, SMAA and camera per mode
+  const isReal = state.mode === 'real';
+  // The holo scene carries a near-black atmospheric fog (#05080c) that
+  // crushes a white stage at product-camera distances — REAL runs fogless,
+  // the other modes get the original fog object back untouched.
+  if (applyMode._fog === undefined) applyMode._fog = scene.fog;
+  scene.fog = isReal ? null : applyMode._fog;
+  studioStage.visible = isReal;
+  key.castShadow = isReal;
+  smaa.enabled = isReal;
+  if (isReal){ studioGroundFill.color.setHex(0xffffff); studioGroundFill.groundColor.setHex(0xd8d4cc); }
+  else       { studioGroundFill.color.setHex(0xc8d4e0); studioGroundFill.groundColor.setHex(0x1a1410); }
+  const wantFov = m.fov ?? 32;
+  if (camera.fov !== wantFov){ camera.fov = wantFov; camera.updateProjectionMatrix(); }
 }
 
 /* ============================================================
@@ -5153,6 +5225,15 @@ document.querySelectorAll('.btn').forEach(b => {
       document.querySelector('[data-cmd=case]')?.classList.toggle('active', caseHousing.visible);
       document.querySelector('[data-cmd=ambiance]')?.classList.toggle('active', ambianceGroup.visible);
       applyMode();
+      if (state.mode === 'real'){
+        frameSubject();                            // P2: open REAL on the product framing…
+        const v = camera.position.clone().sub(controls.target);
+        v.multiplyScalar(1.55);                    // …padded for the housing…
+        v.y = v.length() * 0.5;                    // …from a raised product-shot angle
+        camera.position.copy(controls.target).add(v);
+        controls.update();
+        CAM_HOME.pos.copy(camera.position);
+      }
       b.classList.toggle('active', state.mode !== 'hologram');
       // label shows what the NEXT click switches to (existing convention)
       document.getElementById('mode-label').textContent =
@@ -5265,11 +5346,22 @@ document.getElementById('m-verts').textContent = vert.toLocaleString(undefined,{
 /* ============================================================
    INITIAL FRAME + MODE  (after all geometry built)
 ============================================================ */
+// PHOTOREAL P2 — flag every solid mesh for the REAL-mode shadow pass once.
+// Costs nothing until key.castShadow flips on (REAL only); shader effects
+// (chambers/galleries/EDS) and the stage are excluded.
+scene.traverse(o => {
+  if (o.isMesh && o.material && !o.material.isShaderMaterial && o.parent !== studioStage){
+    o.castShadow = true;
+    o.receiveShadow = true;
+  }
+});
+studioStage.traverse(o => { if (o.isMesh){ o.castShadow = false; o.receiveShadow = true; } });
 frameSubject();
 applyMode();
 
 // expose for debugging
-window.__d = { camera, controls, PULLEY, SEC_PULLEY, fixedSheave, movAssembly, belt, fixedSheave2, movAssembly2, belt2, beltLink, frameSubject, applyMode, state, THREE, TEL, DTC_INFO, simStep, BRIDGE, VEH, SIGNAL_MAP, applyBridgeSignal, applyReplaySignals, computeDerivedFromCAN, liveSignals, updateAuxComponents, fwdClutchKit, revClutchKit, planetaryKit, pumpKit, valveBodyKit, tcKit, outputKit, oilFlow, getDriveState, desiredRatioFor };
+window.__d = { camera, controls, PULLEY, SEC_PULLEY, fixedSheave, movAssembly, belt, fixedSheave2, movAssembly2, belt2, beltLink, frameSubject, applyMode, state, THREE, TEL, DTC_INFO, simStep, BRIDGE, VEH, SIGNAL_MAP, applyBridgeSignal, applyReplaySignals, computeDerivedFromCAN, liveSignals, updateAuxComponents, fwdClutchKit, revClutchKit, planetaryKit, pumpKit, valveBodyKit, tcKit, outputKit, oilFlow, getDriveState, desiredRatioFor,
+  renderer, composer, bloom, film, smaa, studioStage, key, amb, rim, fill, studioSoftbox, studioGroundFill, camFill };   // PHOTOREAL P2 — render-pipeline debug access
 
 /* ============================================================
    TEST HARNESS (Phase 0.3) — drive the sim + read invariants from eval,
